@@ -1,0 +1,9 @@
+# Code owners for agentic-sec-new.
+#
+# Ryan Sevey is the sole maintainer. Branch protection on `main` requires a
+# pull request and at least one approval from a code owner — that is, only
+# @rseveymant's approval counts toward merging.
+#
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @rseveymant
