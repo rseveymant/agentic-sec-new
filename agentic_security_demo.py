@@ -137,11 +137,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     max_steps = max(2, args.max_steps)
 
     if args.serve:
-        print("--serve is not implemented in this unit; arriving in Unit B.")
+        from web.server import serve
+        serve(host=args.host, port=args.port)
         return 0
     if args.build_static:
-        print("--build-static is not implemented in this unit; arriving in Unit B.")
-        return 0
+        import build_static
+        return build_static.main(["--out", args.out])
     if args.monte_carlo:
         print_monte_carlo(runs=max(1, args.runs), max_steps=max_steps)
     else:
