@@ -127,7 +127,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--max-steps", type=int, default=8, help="Maximum agent steps.")
     parser.add_argument("--host", default="127.0.0.1", help="Host for --serve.")
     parser.add_argument("--port", type=int, default=8000, help="Port for --serve.")
-    parser.add_argument("--out", default="web/dist", help="Output directory for --build-static.")
+    parser.add_argument("--out", default="docs", help="Output directory for --build-static.")
     return parser.parse_args(argv)
 
 

@@ -1,0 +1,53 @@
+{
+  "params": {
+    "runs": 500,
+    "max_steps": 8
+  },
+  "rows": [
+    {
+      "capability": 1,
+      "static_success_rate": 0.0,
+      "agent_success_rate": 0.732,
+      "static_detection_rate": 0.156,
+      "agent_detection_rate": 0.238,
+      "static_avg_steps": 1,
+      "agent_avg_steps": 5.818
+    },
+    {
+      "capability": 2,
+      "static_success_rate": 0.0,
+      "agent_success_rate": 0.926,
+      "static_detection_rate": 0.156,
+      "agent_detection_rate": 0.224,
+      "static_avg_steps": 1,
+      "agent_avg_steps": 4.664
+    },
+    {
+      "capability": 3,
+      "static_success_rate": 0.0,
+      "agent_success_rate": 0.984,
+      "static_detection_rate": 0.156,
+      "agent_detection_rate": 0.22,
+      "static_avg_steps": 1,
+      "agent_avg_steps": 3.92
+    },
+    {
+      "capability": 4,
+      "static_success_rate": 0.0,
+      "agent_success_rate": 0.998,
+      "static_detection_rate": 0.156,
+      "agent_detection_rate": 0.214,
+      "static_avg_steps": 1,
+      "agent_avg_steps": 3.456
+    },
+    {
+      "capability": 5,
+      "static_success_rate": 0.0,
+      "agent_success_rate": 0.998,
+      "static_detection_rate": 0.156,
+      "agent_detection_rate": 0.208,
+      "static_avg_steps": 1,
+      "agent_avg_steps": 3.228
+    }
+  ]
+}

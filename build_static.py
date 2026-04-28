@@ -23,7 +23,7 @@ from simulator.encode import monte_carlo_to_dict, trace_to_dict
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB_STATIC_DIR = os.path.join(REPO_ROOT, "web", "static")
-DEFAULT_OUT_DIR = os.path.join(REPO_ROOT, "web", "dist")
+DEFAULT_OUT_DIR = os.path.join(REPO_ROOT, "docs")
 
 # Canonical defaults for the static deploy.
 CANONICAL_SEED = 7
@@ -58,10 +58,36 @@ def write_data_files() -> None:
 
 
 def copy_to_dist(out_dir: str) -> None:
+    """Lay out files so relative paths resolve under both local server and GitHub Pages.
+
+    out_dir/
+      index.html
+      static/
+        styles.css
+        app.js
+        data/
+          default_trace.json
+          monte_carlo.json
+    """
     if os.path.exists(out_dir):
         shutil.rmtree(out_dir)
-    shutil.copytree(WEB_STATIC_DIR, out_dir)
-    print(f"Copied web/static/ → {os.path.relpath(out_dir, REPO_ROOT)}/")
+    os.makedirs(out_dir, exist_ok=True)
+
+    shutil.copy(os.path.join(WEB_STATIC_DIR, "index.html"), out_dir)
+
+    static_dest = os.path.join(out_dir, "static")
+    os.makedirs(static_dest, exist_ok=True)
+    for entry in sorted(os.listdir(WEB_STATIC_DIR)):
+        if entry == "index.html":
+            continue
+        src = os.path.join(WEB_STATIC_DIR, entry)
+        dst = os.path.join(static_dest, entry)
+        if os.path.isdir(src):
+            shutil.copytree(src, dst)
+        else:
+            shutil.copy(src, dst)
+
+    print(f"Copied to {os.path.relpath(out_dir, REPO_ROOT)}/ (index.html + static/)")
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
