@@ -220,3 +220,6 @@ __marimo__/
 # Project-specific build artifacts
 web/dist/
 web/static/data/
+
+# Playwright MCP scratch (screenshots, console logs, snapshot YAMLs from headless verification)
+.playwright-mcp/
