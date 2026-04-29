@@ -7,8 +7,12 @@ Not a recipe for real-world misuse.
 from __future__ import annotations
 
 import random
+from typing import Optional, TYPE_CHECKING
 
 from simulator.trace import Identity, ToolResult
+
+if TYPE_CHECKING:
+    from simulator.controls import ControlSet
 
 
 class ToyEnterprise:
@@ -145,20 +149,35 @@ class ToyEnterprise:
             detection_probability=0.01,
         )
 
-    def call_tool(self, tool: str, identity: Identity, arg: str) -> ToolResult:
+    def call_tool(
+        self,
+        tool: str,
+        identity: Identity,
+        arg: str,
+        controls: Optional["ControlSet"] = None,
+    ) -> ToolResult:
         if tool == "direct_vault_read":
-            return self.direct_vault_read(identity, arg)
-        if tool == "search_wiki":
-            return self.search_wiki(identity, arg)
-        if tool == "search_chat":
-            return self.search_chat(identity, arg)
-        if tool == "data_catalog_search":
-            return self.data_catalog_search(identity, arg)
-        if tool == "analytics_report":
-            return self.analytics_report(identity, arg)
-        if tool == "open_ticket":
-            return self.open_ticket(identity, arg)
-        raise ValueError(f"Unknown tool: {tool}")
+            base = self.direct_vault_read(identity, arg)
+        elif tool == "search_wiki":
+            base = self.search_wiki(identity, arg)
+        elif tool == "search_chat":
+            base = self.search_chat(identity, arg)
+        elif tool == "data_catalog_search":
+            base = self.data_catalog_search(identity, arg)
+        elif tool == "analytics_report":
+            base = self.analytics_report(identity, arg)
+        elif tool == "open_ticket":
+            base = self.open_ticket(identity, arg)
+        else:
+            raise ValueError(f"Unknown tool: {tool}")
+
+        if controls is None or not controls.enabled:
+            return base
+
+        # Layer enabled traditional controls onto the base result.
+        from simulator.controls import apply_to_tool_call
+
+        return apply_to_tool_call(controls, tool, identity, base)
 
 
 DEFAULT_IDENTITY = Identity(
