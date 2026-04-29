@@ -616,3 +616,56 @@ section:last-child { border-bottom: 0; }
   html { scroll-behavior: auto; }
   .trace-step { transition: none; }
 }
+
+/* PIVOT — curl-question list (manifesto §28 alignment) */
+.pivot-questions {
+  list-style: none;
+  padding: 0;
+  margin: 14px auto 18px;
+  max-width: 640px;
+  text-align: left;
+  color: var(--text);
+}
+.pivot-questions li {
+  padding: 8px 12px;
+  margin: 6px 0;
+  border-left: 2px solid var(--teal);
+  background: var(--light);
+  border-radius: 0 8px 8px 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.pivot-questions li code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  background: var(--mint);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* EQUATION — KaTeX display-math blocks */
+.equation-block {
+  margin: 12px 0;
+  padding: 6px 0;
+  text-align: center;
+  overflow-x: auto;
+}
+.equation-block .katex-display {
+  margin: 0;
+}
+
+/* SOURCE — manifesto link */
+.manifesto-link {
+  font-size: 14px;
+  margin-top: 6px;
+}
+.manifesto-link a {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .pivot-questions { font-size: 14px; }
+  .pivot-questions li { padding: 8px 10px; }
+  .equation-block { font-size: 14px; padding: 4px 0; }
+}

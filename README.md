@@ -23,6 +23,7 @@ Layered on top of the v1 page without replacing it:
 - **Sharpened argument across `#steelman`, `#pivot`, `#equation`.** Steelman now leads with the explicit traditional model (`defender wins if time_to_detect_or_contain < human_time_to_impact`). Pivot leads with the closed-loop framing — `script: goal → step → fail → stop` vs `agent: goal → plan → act → observe → update → retry → adapt → continue` — and states *"the difference is feedback, not speed."* Equation has an always-visible rate-race lede above the `<details>`; inside, the hardened agentic model `T_impact = W / (M × T × A × F × R × P × D)`, the `λ_success / (λ_success + λ_detect)` ratio, the governance-aware `min(T_govern, T_detect, T_contain, T_response)`, and a stress-test paragraph naming when agentic risk is *low*.
 - **Catalog-based static deploy.** `build_static.py` enumerates the 2^12 = 4096 toggle combinations under the canonical seed/capability/max-steps, deduplicates traces, and writes `docs/static/data/superset_trace.json` (449 unique paths, ~57 KB gzipped under canonical seed=7, capability=4, max-steps=8). A small JS overlay (`controls-overlay.js`) does dictionary lookups against the catalog so the page is fully interactive on GitHub Pages with no Python runtime.
 - **Narrow JS-overlay exception to ADR-1.** The path-search and trace generation stay Python-only. The JS overlay is a thin lookup against the pre-rendered catalog — it does NOT re-implement the simulator. Full rationale: `aisdlc-docs/inception/7-design.md` ADR-7-3.
+- **Manifesto-aligned argument.** `#steelman` and `#pivot` copy align to `agentic_security_manifesto.md` §4 / §28; `#equation` is now rendered with real LaTeX via [KaTeX](https://katex.org/) (bundled locally under `web/static/vendor/katex/`, ~600 KB total — same-origin assets, no CDN at runtime). `#source` links to the longer manifesto.
 
 > **Anchor change for external links:** the old `#governance` section was replaced by `#controls`. Update any saved links.
 
@@ -90,7 +91,10 @@ agentic-sec-new/
   web/
     server.py                  # stdlib HTTP server (live mode)
     static/                    # HTML / CSS / JS source
+      vendor/katex/            # KaTeX 0.16.9 bundled locally for equation rendering (#7)
   docs/                        # static deploy output (GitHub Pages serves from here)
+  agentic_security_manifesto.md  # long-form companion argument
+
   v1/                          # original prototype, archived for reference
   aisdlc-docs/                 # inception planning docs
 ```
@@ -106,6 +110,7 @@ agentic-sec-new/
 - `docs/static/data/default_trace.json`        — one paired trace
 - `docs/static/data/monte_carlo.json`          — capability sweep over 500 runs
 - `docs/static/data/superset_trace.json`       — pre-rendered catalog of all 4096 toggle combinations, deduplicated. Size budget: ~150 KB gzipped; canonical seed runs at ~57 KB gzipped (449 unique paths). (#7)
+- `docs/static/vendor/katex/`                  — KaTeX 0.16.9 (CSS + JS + 20 woff2 fonts, ~600 KB total). Same-origin assets; no CDN at runtime. (#7)
 
 Pushing to `main` triggers GitHub Pages to redeploy from `docs/`. To enable Pages: repo Settings → Pages → Source: Deploy from a branch → Branch `main` / `/docs`.
 

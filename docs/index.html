@@ -8,6 +8,7 @@
   <meta name="color-scheme" content="light">
   <title>Same Primitives. New Control Loop.</title>
   <link rel="stylesheet" href="static/styles.css">
+  <link rel="stylesheet" href="static/vendor/katex/katex.min.css">
 </head>
 <body>
   <main>
@@ -29,11 +30,11 @@
       <h2>Why "curl is still curl" sounds right.</h2>
       <p>Start with the working model most defenders already carry:</p>
       <ul class="steelman-model">
-        <li>A human attacker has finite time, attention, expertise, and patience.</li>
-        <li>A static script has fixed instructions and brittle failure modes.</li>
-        <li>Defense adds friction.</li>
-        <li>Friction increases time-to-success.</li>
-        <li>Monitoring reduces time-to-detection.</li>
+        <li>Traditional security assumes a bounded human attacker or a brittle automated script.</li>
+        <li>Defense aims to make the attack harder, slower, and noisier.</li>
+        <li>Defenders limit access and raise the attacker's cost.</li>
+        <li>Monitoring shortens time-to-detection; segmentation contains blast radius.</li>
+        <li>Defender wins if detection or containment lands before impact.</li>
       </ul>
       <p>An HTTP request from an agent is still an HTTP request. If the request is unauthorized, existing authorization should block it. If it is suspicious, existing logging should see it. If it leaks data, that is a data-governance problem. If a prompt manipulates behavior, that is another kind of injection.</p>
       <p>The primitives are not new. IAM is still IAM. Confused-deputy is still confused-deputy. Existing security controls remain necessary.</p>
@@ -48,6 +49,14 @@
 <pre class="pivot-loop"><code>script: goal → step → fail → stop
 agent:  goal → plan → act → observe → update → retry → adapt → continue</code></pre>
       <p class="pivot-callout"><em>The difference is feedback, not speed.</em></p>
+      <p>A single <code>curl</code> can look normal. The security question is no longer just <em>"is this request authorized?"</em> It is also:</p>
+      <ul class="pivot-questions">
+        <li>Who or what decides the next <code>curl</code>?</li>
+        <li>What goal was being pursued?</li>
+        <li>What failed before this &mdash; and what will it try next?</li>
+        <li>What authority is it using? What boundary is it crossing?</li>
+        <li>Can the sequence be reconstructed? Can the loop be stopped?</li>
+      </ul>
       <p>Below, two actors pursue the same goal with the same starting credentials and the same tool catalogue. They make the same first call. They both get a 403.</p>
       <p>The static script stops. The agent treats the 403 as feedback, searches internal context, finds an alternate approved-looking path, and reaches the goal.</p>
       <p><em>Watch what happens after the failure.</em></p>
@@ -232,11 +241,11 @@ agent:  goal → plan → act → observe → update → retry → adapt → con
         <summary>Show the math (optional)</summary>
         <div class="equation-body">
           <p><strong>Traditional model.</strong> Defense buys time against a bounded human or brittle script.</p>
-<pre><code>T_impact = W / human_throughput
-human_throughput = skill × tooling × time × access</code></pre>
+          <div class="equation-block">$$T_{\text{impact}} = \frac{W}{\text{human\_throughput}}$$</div>
+          <div class="equation-block">$$\text{human\_throughput} = \text{skill} \times \text{tooling} \times \text{time} \times \text{access}$$</div>
 
           <p><strong>Agentic model.</strong> Throughput is no longer bounded by one human; it is a product of capability variables that compound.</p>
-<pre><code>T_impact = W / (M × T × A × F × R × P × D)</code></pre>
+          <div class="equation-block">$$T_{\text{impact}} = \frac{W}{M \times T \times A \times F \times R \times P \times D}$$</div>
           <p>Where:</p>
           <ul class="equation-vars">
             <li><strong>W</strong> = work required to reach impact</li>
@@ -250,10 +259,10 @@ human_throughput = skill × tooling × time × access</code></pre>
           </ul>
 
           <p><strong>The race.</strong> Treat success and detection as competing rates. The ratio matters, not just the rate.</p>
-<pre><code>P(success before detection) = λ_success / (λ_success + λ_detect)</code></pre>
+          <div class="equation-block">$$P(\text{success before detection}) = \frac{\lambda_{\text{success}}}{\lambda_{\text{success}} + \lambda_{\text{detect}}}$$</div>
 
           <p><strong>Defender controls.</strong> Risk depends on whether impact lands before any defender clock fires.</p>
-<pre><code>Risk = P(T_impact &lt; min(T_govern, T_detect, T_contain, T_response)) × Impact</code></pre>
+          <div class="equation-block">$$\text{Risk} = P(T_{\text{impact}} \lt \min(T_{\text{govern}}, T_{\text{detect}}, T_{\text{contain}}, T_{\text{response}})) \times \text{Impact}$$</div>
 
           <p><strong>Stress test &mdash; when agentic risk is <em>low</em>.</strong> The argument is measured, not catastrophist:</p>
           <ul class="equation-stress">
@@ -279,11 +288,27 @@ human_throughput = skill × tooling × time × access</code></pre>
         Source: <a href="https://github.com/rseveymant/agentic-sec-new">github.com/rseveymant/agentic-sec-new</a>.
         License: MIT.
       </p>
+      <p class="manifesto-link">Read the longer argument: <a href="https://github.com/rseveymant/agentic-sec-new/blob/main/agentic_security_manifesto.md">The Agentic Security Manifesto</a>.</p>
       <p class="reproduce">Change the seed and re-run it locally &mdash; the simulation is deterministic per seed.</p>
     </section>
 
   </main>
+  <script src="static/vendor/katex/katex.min.js" defer></script>
+  <script src="static/vendor/katex/auto-render.min.js" defer></script>
   <script src="static/controls-overlay.js" defer></script>
   <script src="static/app.js" defer></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (typeof renderMathInElement !== "function") return;
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "\\(", right: "\\)", display: false }
+        ],
+        throwOnError: false
+      });
+    });
+  </script>
 </body>
 </html>
