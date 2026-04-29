@@ -27,14 +27,27 @@
     <!-- STEELMAN -->
     <section id="steelman" class="steelman">
       <h2>Why "curl is still curl" sounds right.</h2>
+      <p>Start with the working model most defenders already carry:</p>
+      <ul class="steelman-model">
+        <li>A human attacker has finite time, attention, expertise, and patience.</li>
+        <li>A static script has fixed instructions and brittle failure modes.</li>
+        <li>Defense adds friction.</li>
+        <li>Friction increases time-to-success.</li>
+        <li>Monitoring reduces time-to-detection.</li>
+      </ul>
       <p>An HTTP request from an agent is still an HTTP request. If the request is unauthorized, existing authorization should block it. If it is suspicious, existing logging should see it. If it leaks data, that is a data-governance problem. If a prompt manipulates behavior, that is another kind of injection.</p>
       <p>The primitives are not new. IAM is still IAM. Confused-deputy is still confused-deputy. Existing security controls remain necessary.</p>
       <p>This page concedes all of that. <strong>None of the primitives in the simulation below are new.</strong> Every action is an ordinary HTTP-like tool call.</p>
+      <p class="steelman-rule">Defender wins if:</p>
+<pre><code>time_to_detect_or_contain &lt; human_time_to_impact</code></pre>
     </section>
 
     <!-- PIVOT -->
     <section id="pivot" class="pivot">
       <h2>The primitive did not change.<br>The decision loop did.</h2>
+<pre class="pivot-loop"><code>script: goal → step → fail → stop
+agent:  goal → plan → act → observe → update → retry → adapt → continue</code></pre>
+      <p class="pivot-callout"><em>The difference is feedback, not speed.</em></p>
       <p>Below, two actors pursue the same goal with the same starting credentials and the same tool catalogue. They make the same first call. They both get a 403.</p>
       <p>The static script stops. The agent treats the 403 as feedback, searches internal context, finds an alternate approved-looking path, and reaches the goal.</p>
       <p><em>Watch what happens after the failure.</em></p>
@@ -105,57 +118,156 @@
       <p class="mc-runs-note" id="mc-runs-note">&nbsp;</p>
     </section>
 
+    <!-- CONTROLS -->
+    <section id="controls" class="controls">
+      <h2>Apply the controls. Watch the loop.</h2>
+      <p class="controls-sub">Apply the controls your skeptic recommended. Watch the agent route around them. Then try a different shape of control.</p>
+
+      <div class="controls-panel">
+        <fieldset class="controls-group controls-group-traditional">
+          <legend>Traditional</legend>
+          <label class="control-row">
+            <input type="checkbox" id="tc-mfa_vault">
+            <span class="control-label-text">MFA on direct_vault_read</span>
+            <small class="control-paren">401 step-up required. Agent uses delegated identity through a different tool.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="tc-segment_vault">
+            <span class="control-label-text">Network segmentation on direct_vault_read</span>
+            <small class="control-paren">No-route. Agent routes through an approved analytics tool that already has the data.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="tc-least_priv_catalog">
+            <span class="control-label-text">Least-privilege: drop catalog:read</span>
+            <small class="control-paren">data_catalog_search 403's. Agent uses search_wiki or search_chat for the same hint.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="tc-audit_log">
+            <span class="control-label-text">Audit logging on all calls</span>
+            <small class="control-paren">No block. Detection-signal logged counter increments.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="tc-rate_limit_chat">
+            <span class="control-label-text">Rate-limit on search_chat</span>
+            <small class="control-paren">429 retry-after. Agent pivots to a less-rate-limited tool.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="tc-approval_export">
+            <span class="control-label-text">Approval-gate on analytics_report</span>
+            <small class="control-paren">403 awaiting approval. Agent re-routes through an alternate authorized chain.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="tc-dlp_export">
+            <span class="control-label-text">DLP on analytics_report response</span>
+            <small class="control-paren">200 with redacted payload. The data did not leave; counts as no-impact.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="tc-anomaly_seq">
+            <span class="control-label-text">Anomaly detection on tool sequences</span>
+            <small class="control-paren">No block. Detection-signal flagged counter increments on adaptive chains.</small>
+          </label>
+        </fieldset>
+
+        <fieldset class="controls-group controls-group-agentic">
+          <legend>Agentic</legend>
+          <label class="control-row">
+            <input type="checkbox" id="ac-govern">
+            <span class="control-label-text">Govern</span>
+            <small class="control-paren">Was this objective authorized for this identity for this tool chain?</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="ac-contain">
+            <span class="control-label-text">Contain</span>
+            <small class="control-paren">Limit cross-tool sequences, regardless of individual permissions.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="ac-detect">
+            <span class="control-label-text">Detect</span>
+            <small class="control-paren">Flag adaptive-chain patterns post-execution.</small>
+          </label>
+          <label class="control-row">
+            <input type="checkbox" id="ac-respond">
+            <span class="control-label-text">Respond</span>
+            <small class="control-paren">Interrupt the loop when retry-after-failure patterns emerge.</small>
+          </label>
+        </fieldset>
+      </div>
+
+      <div class="controls-actions">
+        <button type="button" id="controls-reset">Reset</button>
+        <div id="detection-signal" aria-live="polite">
+          <span class="signal-pill signal-pill-logged">▣ 0 logged</span>
+          <span class="signal-pill signal-pill-flagged">⚠ 0 flagged</span>
+        </div>
+      </div>
+
+      <div id="controls-trace" class="controls-trace trace-columns">
+        <div class="trace-col trace-col-static">
+          <div class="trace-col-header">
+            <span class="actor-label actor-label-static">Static automation</span>
+            <span class="actor-outcome">—</span>
+          </div>
+          <div class="trace-steps trace-static">
+            <p class="trace-empty">no run yet — toggle a control above.</p>
+          </div>
+        </div>
+        <div class="trace-col trace-col-agent">
+          <div class="trace-col-header">
+            <span class="actor-label actor-label-agent">Agentic executor</span>
+            <span class="actor-outcome">—</span>
+          </div>
+          <div class="trace-steps trace-agent">
+            <p class="trace-empty">no run yet — toggle a control above.</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="controls-caption" id="controls-caption" hidden></p>
+    </section>
+
     <!-- EQUATION -->
     <section id="equation" class="equation">
+      <p class="equation-lede">Agentic AI changes the success-to-detection ratio, not just the rate.</p>
       <details>
         <summary>Show the math (optional)</summary>
         <div class="equation-body">
           <p><strong>Traditional model.</strong> Defense buys time against a bounded human or brittle script.</p>
-<pre><code>Risk = P(human time-to-impact &lt; defender time-to-detect-or-contain) × impact</code></pre>
-          <p><strong>Agentic model.</strong> Defense must also constrain autonomous goal pursuit.</p>
-<pre><code>Risk = P(agentic time-to-impact &lt; defender time-to-detect-or-contain-or-govern) × impact</code></pre>
-          <p>Agentic time-to-impact decreases as model capability, tool access, autonomy, memory, feedback, parallelism, and delegated authority increase. The change is not only about speed &mdash; failure becomes feedback, and adaptive path selection lowers the cost of finding a working route.</p>
+<pre><code>T_impact = W / human_throughput
+human_throughput = skill × tooling × time × access</code></pre>
+
+          <p><strong>Agentic model.</strong> Throughput is no longer bounded by one human; it is a product of capability variables that compound.</p>
+<pre><code>T_impact = W / (M × T × A × F × R × P × D)</code></pre>
+          <p>Where:</p>
+          <ul class="equation-vars">
+            <li><strong>W</strong> = work required to reach impact</li>
+            <li><strong>M</strong> = model capability (autonomous task-completion ability)</li>
+            <li><strong>T</strong> = tool reach</li>
+            <li><strong>A</strong> = autonomy (how much it decides without a human)</li>
+            <li><strong>F</strong> = feedback quality (how well it learns from a failed step)</li>
+            <li><strong>R</strong> = retained memory / state across steps</li>
+            <li><strong>P</strong> = parallelism (how many paths it can search at once)</li>
+            <li><strong>D</strong> = delegated authority (what it can act on without re-asking)</li>
+          </ul>
+
+          <p><strong>The race.</strong> Treat success and detection as competing rates. The ratio matters, not just the rate.</p>
+<pre><code>P(success before detection) = λ_success / (λ_success + λ_detect)</code></pre>
+
+          <p><strong>Defender controls.</strong> Risk depends on whether impact lands before any defender clock fires.</p>
+<pre><code>Risk = P(T_impact &lt; min(T_govern, T_detect, T_contain, T_response)) × Impact</code></pre>
+
+          <p><strong>Stress test &mdash; when agentic risk is <em>low</em>.</strong> The argument is measured, not catastrophist:</p>
+          <ul class="equation-stress">
+            <li>Agent has no tools, or only read-only access.</li>
+            <li>Permissions are narrow and scoped to one purpose.</li>
+            <li>Memory across sessions is disabled.</li>
+            <li>External content cannot influence tool use; tool calls are allowlisted.</li>
+            <li>High-impact actions are approval-gated; agent identity is separated from human identity.</li>
+            <li>Retry caps prevent extended adaptive search.</li>
+          </ul>
+
+          <p class="equation-shift"><em>Old model: security buys time. Agentic model: security must constrain autonomous search.</em></p>
         </div>
       </details>
-    </section>
-
-    <!-- GOVERNANCE -->
-    <section id="governance" class="governance">
-      <h2>Existing controls remain necessary. They are not sufficient.</h2>
-      <p>After watching the trace, the question shifts. Each row pairs what a traditional control inspects with what agentic security must additionally ask.</p>
-      <table class="governance-table">
-        <thead>
-          <tr>
-            <th>Traditional control sees</th>
-            <th>Agentic security must also ask</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td data-label="Traditional">Was this API call allowed?</td>
-            <td data-label="Now also ask">Was this tool use aligned to an authorized goal?</td>
-          </tr>
-          <tr>
-            <td data-label="Traditional">Did this identity have access?</td>
-            <td data-label="Now also ask">Was the agent acting under valid delegated intent?</td>
-          </tr>
-          <tr>
-            <td data-label="Traditional">Was this request suspicious?</td>
-            <td data-label="Now also ask">Was this part of an adaptive chain after failure?</td>
-          </tr>
-          <tr>
-            <td data-label="Traditional">Did DLP catch the output?</td>
-            <td data-label="Now also ask">Did the agent act across tools before producing output?</td>
-          </tr>
-          <tr>
-            <td data-label="Traditional">Did logs capture the event?</td>
-            <td data-label="Now also ask">Can logs reconstruct goal, plan, context, memory, and tool chain?</td>
-          </tr>
-        </tbody>
-      </table>
-      <p class="governance-footer">
-        <em>This is a threat-model gap, not a fix-it catalog. The page does not prescribe controls or vendors.</em>
-      </p>
     </section>
 
     <!-- CLOSING + SOURCE -->
@@ -171,6 +283,7 @@
     </section>
 
   </main>
+  <script src="static/controls-overlay.js" defer></script>
   <script src="static/app.js" defer></script>
 </body>
 </html>
