@@ -240,33 +240,43 @@ agent:  goal → plan → act → observe → update → retry → adapt → con
       <details>
         <summary>Show the math (optional)</summary>
         <div class="equation-body">
-          <p><strong>Traditional model.</strong> Defense buys time against a bounded human or brittle script.</p>
-          <div class="equation-block">$$T_{\text{impact}} = \frac{W}{\text{human\_throughput}}$$</div>
-          <div class="equation-block">$$\text{human\_throughput} = \text{skill} \times \text{tooling} \times \text{time} \times \text{access}$$</div>
+          <p class="equation-intro">The framework after several rounds of peer review. Seven blocks; each names a piece of the agentic risk model that the older &ldquo;same attacks, faster&rdquo; framing collapses.</p>
 
-          <p><strong>Agentic model.</strong> Throughput is no longer bounded by one human; it is a product of capability variables that compound.</p>
-          <div class="equation-block">$$T_{\text{impact}} = \frac{W}{M \times T \times A \times F \times R \times P \times D}$$</div>
-          <p>Where:</p>
-          <ul class="equation-vars">
-            <li><strong>W</strong> = work required to reach impact</li>
-            <li><strong>M</strong> = model capability (autonomous task-completion ability)</li>
-            <li><strong>T</strong> = tool reach</li>
-            <li><strong>A</strong> = autonomy (how much it decides without a human)</li>
-            <li><strong>F</strong> = feedback quality (how well it learns from a failed step)</li>
-            <li><strong>R</strong> = retained memory / state across steps</li>
-            <li><strong>P</strong> = parallelism (how many paths it can search at once)</li>
-            <li><strong>D</strong> = delegated authority (what it can act on without re-asking)</li>
-          </ul>
+          <h3 class="equation-h">1. The Probabilistic Action Graph</h3>
+          <p>Controls do not perfectly remove edges; they change edge probabilities and costs.</p>
+          <div class="equation-block">$$G_C = (V, E, w_e)$$</div>
 
-          <p><strong>The race.</strong> Treat success and detection as competing rates. The ratio matters, not just the rate.</p>
-          <div class="equation-block">$$P(\text{success before detection}) = \frac{\lambda_{\text{success}}}{\lambda_{\text{success}} + \lambda_{\text{detect}}}$$</div>
+          <h3 class="equation-h">2. The Goal-Directed Controller Policy</h3>
+          <p>The primitive isn&rsquo;t new; the controller choosing the primitive is.</p>
+          <div class="equation-block">$$\pi_i(a_t \mid h_t, G_C, g_i)$$</div>
 
-          <p><strong>Defender controls.</strong> Risk depends on whether impact lands before any defender clock fires.</p>
-          <div class="equation-block">$$\text{Risk} = P(T_{\text{impact}} \lt \min(T_{\text{govern}}, T_{\text{detect}}, T_{\text{contain}}, T_{\text{response}})) \times \text{Impact}$$</div>
+          <h3 class="equation-h">3. Risk as a Hitting-Time Race</h3>
+          <p>Risk is expected impact conditional on the attacker beating governance, detection + containment, or hard stops.</p>
+          <div class="equation-block">$$\text{Risk} = E[\text{Impact} \mid \mathfrak{E}] \times P(\mathfrak{E})$$</div>
+          <div class="equation-block">$$\mathfrak{E} = \{\, \tau_{\text{impact}} \lt \min(\tau_G,\; \tau_D + \tau_K,\; \tau_{\text{stop}}) \,\}$$</div>
 
-          <p><strong>Stress test &mdash; when agentic risk is <em>low</em>.</strong> The argument is measured, not catastrophist:</p>
+          <h3 class="equation-h">4. Dynamic Effective Speed Ceilings</h3>
+          <p>Effective speed is capped by chokepoints, but both sides can act on those chokepoints dynamically.</p>
+          <div class="equation-block">$$r_{\text{eff}}(P, t) = \min\bigl(P \times r_{\text{lane}}(t),\; r_{\text{tool}}(t),\; r_{\text{auth}}(t),\; r_{\text{rate}}(t),\; r_{\text{compute}}(t),\; r_{\text{approval}}(t),\; r_{\text{network}}(t)\bigr)$$</div>
+          <div class="equation-block">$$r_j(t+1) = r_j(t) + \Delta_{\text{offense\_j}}(t) - \Delta_{\text{defense\_j}}(t)$$</div>
+
+          <h3 class="equation-h">5. Nonlinear Detection Evidence</h3>
+          <p>Parallelism buys exploration but sells stealth. Signal accumulates nonlinearly.</p>
+          <div class="equation-block">$$z_t = \beta_0 + \beta_1 \log(1 + \text{event\_volume}_t) + \beta_2\, \text{anomaly\_score}_t + \beta_3\, \text{sequence\_risk}_t + \dots$$</div>
+          <div class="equation-block">$$P_{\text{detect}}(t) = \sigma(z_t - \theta)$$</div>
+
+          <h3 class="equation-h">6. Total Risk with Interaction Term</h3>
+          <p>AI-native failures can become delivery mechanisms for conventional cyber impact.</p>
+          <div class="equation-block">$$R_{\text{total}} = R_{\text{conventional\_tempo}} + R_{\text{AI\_native}} + R_{\text{interaction}}$$</div>
+
+          <h3 class="equation-h">7. AI-Native Risk Chain</h3>
+          <p>A single weak design can collapse multiple gates at once.</p>
+          <div class="equation-block">$$R_{\text{AI\_native}} = E[\text{Impact} \mid \mathfrak{E}_{\text{AI}}] \times P(\mathfrak{E}_{\text{AI}})$$</div>
+          <div class="equation-block">$$P(\mathfrak{E}_{\text{AI}}) = P(U) \times P(C \mid U) \times P(A \mid C, U) \times P(X \mid A, C, U) \times P(\tau_X \lt \tau_G \mid X, A, C, U)$$</div>
+
+          <p><strong>Stress test &mdash; when agentic risk is <em>low</em>.</strong> The framework is measured, not catastrophist; risk collapses when:</p>
           <ul class="equation-stress">
-            <li>Agent has no tools, or only read-only access.</li>
+            <li>The agent has no tools, or only read-only access.</li>
             <li>Permissions are narrow and scoped to one purpose.</li>
             <li>Memory across sessions is disabled.</li>
             <li>External content cannot influence tool use; tool calls are allowlisted.</li>

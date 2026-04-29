@@ -206,19 +206,13 @@ decrease defender time-to-detection
 contain blast radius before impact
 ```
 
-In simplified form:
+In its current peer-reviewed form, this is a hitting-time race — risk is expected impact conditional on the attacker beating governance, detection + containment, or hard stops:
 
-```text
-Defender wins if:
+$$\text{Risk} = E[\text{Impact} \mid \mathfrak{E}] \times P(\mathfrak{E})$$
 
-time_to_detect_or_contain < human_time_to_impact
-```
+$$\mathfrak{E} = \{\, \tau_{\text{impact}} < \min(\tau_G,\; \tau_D + \tau_K,\; \tau_{\text{stop}}) \,\}$$
 
-Or:
-
-```text
-Risk = P(human_time_to_impact < time_to_detect_or_contain) × impact
-```
+The traditional version of this assumes the attacker's clock is a *human* clock — bounded by skill, time, tooling, and access.
 
 This model is not wrong.
 
@@ -254,32 +248,24 @@ operate through legitimate credentials
 continue until blocked, exhausted, or successful
 ```
 
-The defensive equation becomes:
+The defensive equation is the same hitting-time race from §4, but now the attacker's clock $\tau_{\text{impact}}$ is bounded by **chokepoints**, not by a single multiplied throughput. Effective rate is the minimum across the slowest currently-binding chokepoint, and *both* sides can act on those chokepoints over time:
 
-```text
-Defender wins if:
+$$r_{\text{eff}}(P, t) = \min\bigl(P \times r_{\text{lane}}(t),\; r_{\text{tool}}(t),\; r_{\text{auth}}(t),\; r_{\text{rate}}(t),\; r_{\text{compute}}(t),\; r_{\text{approval}}(t),\; r_{\text{network}}(t)\bigr)$$
 
-time_to_detect_or_contain_or_govern < agentic_time_to_impact
-```
+$$r_j(t+1) = r_j(t) + \Delta_{\text{offense\_j}}(t) - \Delta_{\text{defense\_j}}(t)$$
 
-Or:
-
-```text
-Risk = P(agentic_time_to_impact < time_to_detect_or_contain_or_govern) × impact
-```
-
-Where agentic time-to-impact is affected by:
+The chokepoints are influenced by — but not equal to — the agentic capability inputs:
 
 ```text
 model capability
-× tool access
-× autonomy
-× feedback quality
-× memory
-× parallelism
-× runtime
-× delegated authority
-× business context
+tool access
+autonomy
+feedback quality
+memory
+parallelism
+runtime
+delegated authority
+business context
 ```
 
 The important change is not simply that actions happen faster.
@@ -1783,6 +1769,62 @@ same primitives
 Or, in the shortest possible form:
 
 > **Same primitives. New control loop. New risk model.**
+
+---
+
+## Appendix A: The Revised Math Framework
+
+After several rounds of peer review, the formal expression of the model has settled into seven blocks. The argument throughout this manifesto is informal; this appendix is the precise version. Each block names a piece of the agentic risk model that the older "same attacks, faster" framing collapses.
+
+### 1. The Probabilistic Action Graph
+
+Controls do not perfectly remove edges; they change edge probabilities and costs.
+
+$$G_C = (V, E, w_e)$$
+
+### 2. The Goal-Directed Controller Policy
+
+The primitive isn't new; the controller choosing the primitive is.
+
+$$\pi_i(a_t \mid h_t, G_C, g_i)$$
+
+### 3. Risk as a Hitting-Time Race
+
+Risk is expected impact conditional on the attacker beating governance, detection + containment, or hard stops.
+
+$$\text{Risk} = E[\text{Impact} \mid \mathfrak{E}] \times P(\mathfrak{E})$$
+
+$$\mathfrak{E} = \{\, \tau_{\text{impact}} < \min(\tau_G,\; \tau_D + \tau_K,\; \tau_{\text{stop}}) \,\}$$
+
+### 4. Dynamic Effective Speed Ceilings
+
+Effective speed is capped by chokepoints, but both sides can act on those chokepoints dynamically.
+
+$$r_{\text{eff}}(P, t) = \min\bigl(P \times r_{\text{lane}}(t),\; r_{\text{tool}}(t),\; r_{\text{auth}}(t),\; r_{\text{rate}}(t),\; r_{\text{compute}}(t),\; r_{\text{approval}}(t),\; r_{\text{network}}(t)\bigr)$$
+
+$$r_j(t+1) = r_j(t) + \Delta_{\text{offense\_j}}(t) - \Delta_{\text{defense\_j}}(t)$$
+
+### 5. Nonlinear Detection Evidence
+
+Parallelism buys exploration but sells stealth. Signal accumulates nonlinearly.
+
+$$z_t = \beta_0 + \beta_1 \log(1 + \text{event\_volume}_t) + \beta_2\, \text{anomaly\_score}_t + \beta_3\, \text{sequence\_risk}_t + \dots$$
+
+$$P_{\text{detect}}(t) = \sigma(z_t - \theta)$$
+
+### 6. Total Risk with Interaction Term
+
+AI-native failures can become delivery mechanisms for conventional cyber impact.
+
+$$R_{\text{total}} = R_{\text{conventional\_tempo}} + R_{\text{AI\_native}} + R_{\text{interaction}}$$
+
+### 7. AI-Native Risk Chain
+
+A single weak design can collapse multiple gates at once.
+
+$$R_{\text{AI\_native}} = E[\text{Impact} \mid \mathfrak{E}_{\text{AI}}] \times P(\mathfrak{E}_{\text{AI}})$$
+
+$$P(\mathfrak{E}_{\text{AI}}) = P(U) \times P(C \mid U) \times P(A \mid C, U) \times P(X \mid A, C, U) \times P(\tau_X < \tau_G \mid X, A, C, U)$$
 
 ---
 
