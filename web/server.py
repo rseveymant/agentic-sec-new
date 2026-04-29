@@ -17,11 +17,16 @@ from __future__ import annotations
 
 import json
 import os
+import random
+from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import parse_qs, urlparse
 
+from simulator.actors import AgenticExecutor, StaticAutomation
+from simulator.controls import CONTROL_BY_ID, ControlSet
 from simulator.encode import monte_carlo_to_dict, trace_to_dict
+from simulator.world import DEFAULT_GOAL, DEFAULT_IDENTITY, ToyEnterprise
 
 
 WEB_STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -58,6 +63,28 @@ def _clamp_int(raw: Optional[str], default: int, lo: int, hi: int) -> int:
         return max(lo, min(hi, int(raw)))
     except ValueError:
         return default
+
+
+def _parse_control_ids(raw: Optional[str], kind: str) -> List[str]:
+    """Parse a comma-separated list of control IDs for `tc` or `ac`.
+
+    Filters against `CONTROL_BY_ID`; silently drops unknown IDs and IDs whose
+    canonical kind does not match `kind` (so `tc=govern` is dropped).
+    """
+    if not raw:
+        return []
+    out: List[str] = []
+    seen: set = set()
+    for token in raw.split(","):
+        cid = token.strip()
+        if not cid or cid in seen:
+            continue
+        ctrl = CONTROL_BY_ID.get(cid)
+        if ctrl is None or ctrl.kind != kind:
+            continue
+        seen.add(cid)
+        out.append(cid)
+    return out
 
 
 class DemoHandler(BaseHTTPRequestHandler):
@@ -111,7 +138,46 @@ class DemoHandler(BaseHTTPRequestHandler):
         seed = _clamp_int(params.get("seed", [None])[0], default=7, lo=0, hi=99999)
         capability = _clamp_int(params.get("capability", [None])[0], default=4, lo=1, hi=5)
         max_steps = _clamp_int(params.get("max_steps", [None])[0], default=8, lo=2, hi=20)
-        envelope = trace_to_dict(seed=seed, capability=capability, max_steps=max_steps)
+        tc_ids = _parse_control_ids(params.get("tc", [None])[0], kind="traditional")
+        ac_ids = _parse_control_ids(params.get("ac", [None])[0], kind="agentic")
+        controls = ControlSet(enabled=frozenset(tc_ids + ac_ids))
+
+        # Per-request working identity. Drop catalog:read when least_priv_catalog
+        # is enabled. DEFAULT_IDENTITY is never mutated.
+        working_identity = DEFAULT_IDENTITY
+        if controls.is_enabled("least_priv_catalog"):
+            working_identity = replace(
+                DEFAULT_IDENTITY,
+                scopes=frozenset(DEFAULT_IDENTITY.scopes - {"catalog:read"}),
+            )
+
+        # Fresh RNGs per actor for determinism (matches monte_carlo.run_pair).
+        static_rng = random.Random(seed)
+        agent_rng = random.Random(seed)
+        static_env = ToyEnterprise(static_rng)
+        agent_env = ToyEnterprise(agent_rng)
+
+        static_actor = StaticAutomation(static_env, DEFAULT_IDENTITY, static_rng)
+        agent_actor = AgenticExecutor(
+            agent_env,
+            working_identity,
+            agent_rng,
+            capability=capability,
+            max_steps=max_steps,
+            controls=controls,
+        )
+        static_result = static_actor.run(DEFAULT_GOAL)
+        agent_result = agent_actor.run(DEFAULT_GOAL)
+
+        envelope = trace_to_dict(
+            seed=seed,
+            capability=capability,
+            max_steps=max_steps,
+            static=static_result,
+            agent=agent_result,
+        )
+        envelope["params"]["tc"] = sorted(tc_ids)
+        envelope["params"]["ac"] = sorted(ac_ids)
         self._send_json(envelope)
 
     def _serve_monte_carlo(self, params: dict) -> None:

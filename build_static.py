@@ -18,11 +18,14 @@ import shutil
 import sys
 from typing import Optional, Sequence
 
+from simulator.controls import TRADITIONAL_CONTROLS
 from simulator.encode import monte_carlo_to_dict, trace_to_dict
+from simulator.superset import build_catalog, serialize_catalog, verify_catalog
 
 
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB_STATIC_DIR = os.path.join(REPO_ROOT, "web", "static")
+DOCS_DATA_DIR = os.path.join(REPO_ROOT, "docs", "static", "data")
 DEFAULT_OUT_DIR = os.path.join(REPO_ROOT, "docs")
 
 # Canonical defaults for the static deploy.
@@ -35,6 +38,7 @@ CANONICAL_MC_RUNS = 500
 def write_data_files() -> None:
     data_dir = os.path.join(WEB_STATIC_DIR, "data")
     os.makedirs(data_dir, exist_ok=True)
+    os.makedirs(DOCS_DATA_DIR, exist_ok=True)
 
     trace = trace_to_dict(
         seed=CANONICAL_SEED,
@@ -55,6 +59,39 @@ def write_data_files() -> None:
 
     print(f"Wrote: {os.path.relpath(trace_path, REPO_ROOT)}")
     print(f"Wrote: {os.path.relpath(mc_path, REPO_ROOT)}")
+
+    # Superset catalog (ADR-7-3, ADR-7-7) — feeds the static-mode JS overlay.
+    catalog = build_catalog(
+        seed=CANONICAL_SEED,
+        capability=CANONICAL_CAPABILITY,
+        max_steps=CANONICAL_MAX_STEPS,
+    )
+    catalog_dict = serialize_catalog(catalog)
+
+    superset_path = os.path.join(data_dir, "superset_trace.json")
+    docs_superset_path = os.path.join(DOCS_DATA_DIR, "superset_trace.json")
+
+    with open(superset_path, "w") as f:
+        json.dump(catalog_dict, f, sort_keys=False)
+        f.write("\n")
+    with open(docs_superset_path, "w") as f:
+        json.dump(catalog_dict, f, sort_keys=False)
+        f.write("\n")
+
+    print(f"Wrote: {os.path.relpath(superset_path, REPO_ROOT)}")
+    print(f"Wrote: {os.path.relpath(docs_superset_path, REPO_ROOT)}")
+
+    # Drift guard — sample several canonical combinations and assert the
+    # catalog matches the live simulator output.
+    verify_catalog(
+        catalog,
+        [
+            (["mfa_vault"], []),
+            ([], ["govern"]),
+            (["audit_log", "rate_limit_chat"], ["detect"]),
+            ([c.id for c in TRADITIONAL_CONTROLS], []),
+        ],
+    )
 
 
 def copy_to_dist(out_dir: str) -> None:
