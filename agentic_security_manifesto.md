@@ -1,9 +1,9 @@
 # The Agentic Security Manifesto
 
-## Same primitives. New control loop. New risk model.
+## Same primitives. New controller. Revised risk model.
 
 **By Ryan Sevey**  
-**Version:** 1.0
+**Version:** 1.1 public draft
 
 ---
 
@@ -15,6 +15,10 @@ HTTP is still HTTP.
 `curl` is still `curl`.  
 IAM is still IAM.  
 APIs are still APIs.  
+MFA is still MFA.  
+EDR is still EDR.  
+DLP is still DLP.  
+Segmentation is still segmentation.  
 Injection is still injection.  
 Confused deputy is still confused deputy.  
 Automation is still automation.  
@@ -26,24 +30,40 @@ Cloud security is still cloud security.
 
 But primitives are not the whole risk model.
 
-The security meaning of a primitive changes when it is placed inside a **goal-driven, non-deterministic, tool-using, memory-bearing, feedback-sensitive, adaptive control loop**.
+The security meaning of a primitive changes when it is selected, sequenced, retried, and adapted by a **goal-directed, non-deterministic, tool-using, memory-bearing, feedback-sensitive controller**.
 
-Agentic AI does not merely make old attacks faster. It changes:
+Agentic AI does not merely make old actions faster. It changes:
 
 ```text
 who decides the next action
+which goal drives the action
 how failure is interpreted
 which tool is selected
 how internal authority is used
 how data boundaries are crossed
 how systems are chained
 how long the objective is pursued
+how much telemetry is generated
+how quickly defenders must contain the sequence
 how hard it is to reconstruct intent
 ```
 
 The primitive is old.  
-The control loop is new.  
+The controller is new.  
 The risk model changes.
+
+The mature position is not:
+
+```text
+Everything is new.
+```
+
+The mature position is:
+
+```text
+Existing controls govern the probabilistic action graph.
+Agentic security governs the goal-directed controller searching that graph.
+```
 
 ---
 
@@ -99,7 +119,9 @@ It is correct at the **primitive layer**.
 
 Agentic AI does not make an API call metaphysically new. It does not make OAuth new. It does not make authorization new. It does not make data classification new. It does not make logging new.
 
-But it is incomplete because it stops at the primitive layer.
+It is also correct that defenders can automate too. The agentic race is not automatically offense-favored. If attackers use machine-speed exploration but defenders remain human-speed, the attacker gains advantage. If defenders build machine-speed visibility, governance, and containment, the race changes.
+
+But the opposing view is incomplete when it stops at the primitive layer.
 
 The right question is not:
 
@@ -145,7 +167,7 @@ The request is still just an HTTP request.
 We say:
 
 ```text
-The request may be familiar. The decision process around the request is not.
+The request may be familiar. The controller choosing the request is not.
 ```
 
 They say:
@@ -181,96 +203,194 @@ The same controls still apply.
 We say:
 
 ```text
-The same controls remain necessary, but they are not sufficient unless they can govern goals, tool chains, memory, delegated authority, data boundaries, and adaptive retries.
+The same control families remain necessary. But they must now constrain both the reachable graph and the goal-directed controller searching it.
 ```
 
 The cleanest summary is:
 
-> **Same primitives. New decision plane. New risk model.**
+> **Same primitives. New controller. Revised risk model.**
 
 ---
 
-## 4. The old security model
+## 4. The model is a reasoning scaffold, not predictive actuarial math
 
-Traditional security often assumes a bounded human adversary or brittle automation.
+The equations in this manifesto are not intended to produce precise numeric risk scores.
 
-The defender’s strategy is to:
+They are a reasoning scaffold.
+
+They clarify:
 
 ```text
-make the attack harder
-make the attack slower
-make the attack noisier
-limit the attacker’s access
-increase attacker cost
-decrease defender time-to-detection
-contain blast radius before impact
+where existing controls still apply
+where agentic behavior changes the race
+where conventional cyber becomes a cadence problem
+where AI-native control-surface risk appears
+where defender automation matters
+where governance must constrain the loop
 ```
 
-In its current peer-reviewed form, this is a hitting-time race — risk is expected impact conditional on the attacker beating governance, detection + containment, or hard stops:
+Do not plug guesses into these equations and present the output as a forecast.
 
-$$\text{Risk} = E[\text{Impact} \mid \mathfrak{E}] \times P(\mathfrak{E})$$
+Using the model quantitatively would require:
 
-$$\mathfrak{E} = \{\, \tau_{\text{impact}} < \min(\tau_G,\; \tau_D + \tau_K,\; \tau_{\text{stop}}) \,\}$$
+```text
+empirical calibration
+real telemetry
+rate estimation
+distributional assumptions
+parameter fitting
+validation against observed incidents
+```
 
-The traditional version of this assumes the attacker's clock is a *human* clock — bounded by skill, time, tooling, and access.
+The model is useful because it prevents two bad conclusions:
 
-This model is not wrong.
+```text
+Everything is new.
+Nothing is new.
+```
 
-It is why least privilege, MFA, segmentation, rate limiting, EDR, DLP, logging, approvals, and anomaly detection matter.
+The reality is:
 
-But this model quietly assumes that the “figuring it out” process is bounded by human cognition, human time, human attention, human cost, or brittle scripted logic.
-
-Agentic AI weakens that assumption.
+```text
+Existing controls govern the graph.
+Agentic security governs the controller.
+```
 
 ---
 
-## 5. The agentic security model
+## 5. The enterprise is a constrained, probabilistic action graph
 
-With agentic AI, the “figuring it out” process can itself be delegated.
-
-The user, adversary, compromised account, malicious document, poisoned memory, or indirect prompt injection does not need to specify every step.
-
-It can specify or influence an objective.
-
-The agent can then:
+Model the enterprise as an action graph:
 
 ```text
-interpret the objective
-generate a plan
-choose tools
-call APIs
-read internal context
-observe errors
-update memory
-retry through alternate paths
-chain systems
-operate through legitimate credentials
-continue until blocked, exhausted, or successful
+G = (V, E)
 ```
 
-The defensive equation is the same hitting-time race from §4, but now the attacker's clock $\tau_{\text{impact}}$ is bounded by **chokepoints**, not by a single multiplied throughput. Effective rate is the minimum across the slowest currently-binding chokepoint, and *both* sides can act on those chokepoints over time:
-
-$$r_{\text{eff}}(P, t) = \min\bigl(P \times r_{\text{lane}}(t),\; r_{\text{tool}}(t),\; r_{\text{auth}}(t),\; r_{\text{rate}}(t),\; r_{\text{compute}}(t),\; r_{\text{approval}}(t),\; r_{\text{network}}(t)\bigr)$$
-
-$$r_j(t+1) = r_j(t) + \Delta_{\text{offense\_j}}(t) - \Delta_{\text{defense\_j}}(t)$$
-
-The chokepoints are influenced by — but not equal to — the agentic capability inputs:
+Where:
 
 ```text
-model capability
-tool access
-autonomy
-feedback quality
-memory
-parallelism
-runtime
-delegated authority
-business context
+V = systems, identities, tools, data stores, workflows, users, agents
+E = possible actions or transitions between them
 ```
 
-The important change is not simply that actions happen faster.
+Security controls shape the graph:
 
-The important change is that **adaptive path discovery becomes cheaper, more persistent, more scalable, and more integrated into ordinary enterprise workflows**.
+```text
+IAM
+MFA
+network segmentation
+rate limits
+hardware roots of trust
+tool authorization
+data policy
+approval gates
+logging
+containment controls
+```
+
+But controls do not simply remove edges perfectly.
+
+In real environments, edges have residual reachability, cost, and risk.
+
+So the controlled graph is:
+
+```text
+G_C = (V, E, w_e)
+```
+
+Where each edge has weights such as:
+
+```text
+p_reachable(e)
+cost_time(e)
+cost_telemetry(e)
+cost_privilege(e)
+data_sensitivity(e)
+approval_required(e)
+containment_difficulty(e)
+```
+
+This matters because enterprise controls are imperfect.
+
+An edge may be blocked in theory but reachable through:
+
+```text
+misconfiguration
+over-permissioning
+stale session state
+workflow exception
+delegated tool authority
+weak data policy
+business-context-dependent access
+```
+
+So the right statement is:
+
+> **Controls do not merely remove edges. They change edge probabilities, costs, and detection surfaces.**
+
+This is why agentic systems matter. An agent cannot magically bypass a hard boundary. But it can search for residual paths that remain reachable because of configuration drift, delegated authority, weak workflow design, excessive permissions, or business-context-dependent exceptions.
+
+---
+
+## 6. The actor is a goal-directed controller
+
+A static script, a human, an agent, and a defensive automation system can all operate inside the same graph.
+
+The difference is the controller policy:
+
+```text
+π_i(a_t | h_t, G_C, g_i)
+```
+
+Where:
+
+```text
+π_i = controller policy for actor i
+a_t = action selected at time t
+h_t = history so far
+G_C = controlled enterprise action graph
+g_i = actor objective or goal
+```
+
+A static script usually follows a fixed path:
+
+```text
+Goal → predefined step → predefined step → error → stop
+```
+
+A human attacker is adaptive but bounded by:
+
+```text
+time
+attention
+expertise
+fatigue
+cost
+manual iteration speed
+available context
+```
+
+An agentic executor is:
+
+```text
+goal-directed
+tool-using
+stateful
+feedback-sensitive
+potentially parallel
+bounded by controls, telemetry, policy, and tool reach
+```
+
+So the agentic delta is not that the primitive changed.
+
+It is that the controller changed.
+
+```text
+curl is still curl.
+The difference is π(a_t | h_t, G_C, g): who or what chooses the next curl.
+```
+
+This is why “same attacks, faster” is incomplete.
 
 A script asks:
 
@@ -288,7 +408,433 @@ That “how else” is the new security problem.
 
 ---
 
-## 6. Field validation: real AI systems are ecosystems, not chat boxes
+## 7. Risk is a hitting-time race
+
+Define:
+
+```text
+τ_impact = time until material impact
+τ_G = time until preventive governance blocks the action chain
+τ_D = time until detection
+τ_K = time to contain after detection
+τ_stop = time until hard controls, exhaustion, approval gates, or policy limits stop the actor
+```
+
+Detection alone is not containment:
+
+```text
+τ_detect+contain = τ_D + τ_K
+```
+
+The bad event is:
+
+```text
+𝔈 = { τ_impact < min(τ_G, τ_D + τ_K, τ_stop) }
+```
+
+Risk is:
+
+```text
+Risk = E[Impact | 𝔈] × P(𝔈)
+```
+
+This is stronger than saying:
+
+```text
+Risk = probability × scalar impact
+```
+
+because impact is a distribution.
+
+The defender’s dilemma appears when we consider multiple paths.
+
+For each path:
+
+```text
+𝔈_p = impact occurs through path p before governance, containment, or stop
+```
+
+Across all reachable paths:
+
+```text
+𝔈 = ⋃_{p ∈ Paths(G_C, g)} 𝔈_p
+```
+
+So:
+
+```text
+P(𝔈) = P( ⋃_{p ∈ Paths(G_C, g)} 𝔈_p )
+```
+
+If paths were independent, an approximation would be:
+
+```text
+P(𝔈) ≈ 1 - ∏_{p}(1 - P(𝔈_p))
+```
+
+But paths are usually correlated because they share identities, tools, data stores, policies, workflows, and telemetry.
+
+The key operational point is:
+
+> **Attackers need one viable path. Defenders need enough governance, visibility, and containment across the reachable path space.**
+
+---
+
+## 8. Effective action rate is capped, and the caps are dynamic
+
+Agentic systems do not get infinite speed.
+
+Effective action rate is capped by chokepoints:
+
+```text
+r_eff(P, t) =
+min(
+  P × r_lane(t),
+  r_tool(t),
+  r_auth(t),
+  r_rate(t),
+  r_compute(t),
+  r_approval(t),
+  r_network(t)
+)
+```
+
+Where:
+
+```text
+P = parallel attempts or agents
+r_lane = per-lane action rate
+r_tool = tool/API throughput ceiling
+r_auth = authentication/session ceiling
+r_rate = rate-limit ceiling
+r_compute = compute ceiling
+r_approval = approval/workflow ceiling
+r_network = network/infrastructure ceiling
+```
+
+But these ceilings are not fixed.
+
+Attackers may try to relax the binding constraint:
+
+```text
+steal more credentials
+find another API route
+compromise an approver
+move to another environment
+use lower-rate paths
+```
+
+Defenders may tighten the constraint:
+
+```text
+revoke sessions
+disable connectors
+require approvals
+rate-limit tools
+segment networks
+reduce token scope
+```
+
+So the ceilings are part of a dynamic game:
+
+```text
+r_j(t+1) = r_j(t) + Δ_offense_j(t) - Δ_defense_j(t)
+```
+
+Plainly:
+
+> **Effective agent speed is capped by chokepoints, but both attacker and defender can act on the chokepoints.**
+
+---
+
+## 9. Parallelism buys exploration and sells stealth
+
+Parallelism is not a free multiplier.
+
+More agents or attempts may improve search coverage, but they also generate more telemetry.
+
+Detection evidence is nonlinear.
+
+There is usually:
+
+```text
+a noise floor
+a gray zone
+a threshold
+a saturation point
+```
+
+A more realistic detection-evidence model is:
+
+```text
+z_t = β_0
+    + β_1 log(1 + event_volume_t)
+    + β_2 anomaly_score_t
+    + β_3 sequence_risk_t
+    + β_4 data_sensitivity_t
+    + β_5 identity_risk_t
+    + β_6 tool_chain_risk_t
+```
+
+Then:
+
+```text
+P_detect(t) = σ(z_t - θ)
+```
+
+Where:
+
+```text
+σ(x) = 1 / (1 + e^-x)
+θ = detection threshold
+```
+
+This captures the basic shape:
+
+```text
+below threshold → little detection
+near threshold → detection probability rises quickly
+above threshold → detection saturates
+```
+
+So:
+
+> **Parallelism buys exploration and sells stealth.**
+
+The value of parallelism depends on whether increased path discovery outweighs increased detection and containment probability.
+
+---
+
+## 10. The race is symmetric, but the burden is not
+
+Both attackers and defenders can automate.
+
+So the framework should not assume:
+
+```text
+offense goes machine-speed
+defense stays human-speed
+```
+
+The race is symmetric at the automation layer:
+
+```text
+offense = adaptive path discovery toward impact
+defense = adaptive detection, governance, and containment toward interruption
+```
+
+But the burden is asymmetric at the coverage layer.
+
+Attackers need one viable path.
+
+Defenders need adequate coverage across many possible paths.
+
+So the correct statement is:
+
+> **Agentic AI does not structurally guarantee offensive advantage. It increases tempo and adaptiveness for whichever side automates effectively. The asymmetry appears when offense automates adaptive exploration faster than defense can observe, govern, and contain.**
+
+This is a better budget argument than:
+
+```text
+AI is new, so give us money.
+```
+
+The better argument is:
+
+```text
+If offensive exploration becomes machine-speed, defensive detection and containment must also become machine-speed.
+```
+
+And:
+
+```text
+Detection automation alone is insufficient if containment authority remains human-speed.
+```
+
+---
+
+## 11. Total risk requires an interaction term
+
+A useful conceptual split is:
+
+```text
+conventional cyber under agentic tempo
+AI-native control-surface risk
+```
+
+But they are not independent.
+
+So total risk should be written:
+
+```text
+R_total =
+  R_conventional_tempo
++ R_AI_native
++ R_interaction
+```
+
+Where:
+
+```text
+R_interaction = cross-amplification between AI-native failures and conventional cyber paths
+```
+
+Examples:
+
+```text
+prompt injection → unsafe tool use → conventional data access
+memory poisoning → bad plan → credentialed SaaS action
+RAG poisoning → wrong context → cloud misconfiguration
+agent identity gap → unclear delegation → incident response delay
+tool authorization failure → conventional lateral movement path
+```
+
+So the two-bucket model is analytically useful, but budgeting must not separate the buckets too cleanly.
+
+The operational warning is:
+
+> **AI-native control-surface failures can become delivery mechanisms for conventional cyber impact.**
+
+---
+
+## 12. AI-native risk is a control-surface chain
+
+Define:
+
+```text
+U = untrusted or semi-trusted input reaches the agent control surface
+C = that input influences context, plan, memory, retrieval, or tool choice
+A = tool/delegation policy permits an unsafe action chain
+X = material impact occurs
+G = governance/detection/containment stops the chain before impact
+```
+
+Then:
+
+```text
+R_AI_native = E[Impact | 𝔈_AI] × P(𝔈_AI)
+```
+
+And:
+
+```text
+P(𝔈_AI)
+= P(U)
+× P(C | U)
+× P(A | C, U)
+× P(X | A, C, U)
+× P(τ_X < τ_G | X, A, C, U)
+```
+
+This is a chain-rule decomposition, not an independence claim.
+
+In real systems, these terms are coupled.
+
+A single weak design can collapse several gates at once:
+
+```text
+indirect prompt injection
++ weak context isolation
++ broad tool authorization
+= U → C → A in one step
+```
+
+So the chain should be read as:
+
+> **These are the conceptual gates a safe agentic system should enforce. Weak systems may collapse several gates at once.**
+
+---
+
+## 13. The two-bucket security model
+
+The mature model separates two layers without pretending they are independent.
+
+```text
+Total AI-era risk =
+  conventional cyber under agentic tempo
++ AI-native control-surface risk
++ interaction risk
+```
+
+### Bucket 1: Conventional cyber under agentic tempo
+
+This includes familiar risks:
+
+```text
+credential abuse
+API abuse
+phishing
+cloud misconfiguration
+exfiltration
+lateral movement
+vulnerability discovery
+endpoint activity
+SaaS abuse
+```
+
+For this bucket, the existing control families still map:
+
+```text
+identity
+segmentation
+EDR
+SIEM / SOAR
+DLP
+data governance
+incident response
+least privilege
+secure SDLC
+rate limiting
+```
+
+What changes is cadence, scale, and adaptive throughput.
+
+You now need:
+
+```text
+faster detection
+faster containment
+faster privilege revocation
+faster blast-radius reduction
+faster triage
+faster patching
+better automation
+```
+
+This is not an entirely new program.
+
+It is the existing program retuned for machine-speed conditions.
+
+### Bucket 2: AI-native control-surface risk
+
+This is where net-new control work is most defensible.
+
+These risks exist because the AI system itself has a control loop:
+
+```text
+prompt injection
+indirect prompt injection
+context poisoning
+memory poisoning
+tool authorization failure
+agent identity gaps
+delegated authority failure
+RAG poisoning or leakage
+system prompt leakage
+model/tool supply chain
+objective-level policy gaps
+control-loop observability gaps
+```
+
+This is where you need new controls, new SMEs, and new budget.
+
+Not because HTTP changed.
+
+Because the thing deciding how to use HTTP changed.
+
+---
+
+## 14. Field validation: real AI systems are ecosystems, not chat boxes
 
 This is no longer theoretical.
 
@@ -337,7 +883,7 @@ The system path is not.
 
 ---
 
-## 7. AI security is stack security
+## 15. AI security is stack security
 
 The right model is not a simple timeline:
 
@@ -391,7 +937,7 @@ It does not replace them.
 
 ---
 
-## 8. The input plane is now a first-class attack surface
+## 16. The input plane is now a first-class attack surface
 
 In traditional application security, we care about input.
 
@@ -460,7 +1006,7 @@ Input can become influence.
 
 ---
 
-## 9. Prompt injection is control-loop manipulation
+## 17. Prompt injection is control-loop manipulation
 
 Prompt injection is often minimized as “just injection.”
 
@@ -516,7 +1062,7 @@ It is control-loop manipulation.
 
 ---
 
-## 10. The confused deputy problem is now an enterprise AI problem
+## 18. The confused deputy problem is now an enterprise AI problem
 
 The most dangerous enterprise scenario is not necessarily an external AI attacking from outside.
 
@@ -577,7 +1123,7 @@ Agentic AI turns confused deputy risk into a first-class enterprise security con
 
 ---
 
-## 11. A system prompt is not an access-control boundary
+## 19. A system prompt is not an access-control boundary
 
 Prompt engineering can express policy.
 
@@ -625,7 +1171,7 @@ The system must enforce the rule.
 
 ---
 
-## 12. Guardrails are not governance
+## 20. Guardrails are not governance
 
 Guardrails matter.
 
@@ -676,7 +1222,7 @@ Use guardrails, but govern the loop.
 
 ---
 
-## 13. Non-determinism changes testing and detection
+## 21. Non-determinism changes testing and detection
 
 LLM and agentic systems are probabilistic.
 
@@ -732,7 +1278,7 @@ The comparative curve should show a near-flat static curve and a rising agent cu
 
 ---
 
-## 14. Business context matters
+## 22. Business context matters
 
 Many real AI security failures are not generic.
 
@@ -791,7 +1337,7 @@ from hijacked or adversarial objective pursuit?
 
 ---
 
-## 15. Agentic security must cover the data lifecycle
+## 23. Agentic security must cover the data lifecycle
 
 The risk is not only runtime.
 
@@ -844,7 +1390,7 @@ The content may still become future influence.
 
 ---
 
-## 16. Data classification becomes runtime policy
+## 24. Data classification becomes runtime policy
 
 AI makes data classification newly urgent because data is increasingly mixed, transformed, summarized, retrieved, and moved across systems.
 
@@ -907,7 +1453,7 @@ Can it become future context?
 
 ---
 
-## 17. The AI worker needs identity
+## 25. The AI worker needs identity
 
 AI workers are beginning to operate beside human workers.
 
@@ -965,7 +1511,7 @@ Which agent did this, acting for which user, under which delegated authority, pu
 
 ---
 
-## 18. Visibility must include the loop, not just the event
+## 26. Visibility must include the loop, not just the event
 
 Traditional logs might show:
 
@@ -1032,7 +1578,7 @@ Visibility has to move from event logging to control-loop observability.
 
 ---
 
-## 19. The proof method
+## 27. The proof method
 
 This manifesto should not rely only on rhetoric.
 
@@ -1062,7 +1608,7 @@ The point is to show that adding observation, state, retry, and alternate-path s
 
 ---
 
-## 20. The demo’s central scene
+## 28. The demo’s central scene
 
 The demo should make this moment unavoidable:
 
@@ -1093,7 +1639,92 @@ That is the evidence layer of the manifesto.
 
 ---
 
-## 21. Current automation is not perfect — and that does not weaken the argument
+## 29. Demo updates implied by the hardened model
+
+The demo should evolve with the math.
+
+### 1. Equal action budget mode
+
+Both actors receive the same step budget.
+
+This proves:
+
+```text
+The agent does not win because it acts faster.
+The agent wins, when it wins, because it uses feedback differently.
+```
+
+### 2. Probabilistic edges
+
+Instead of only hard-coded allowed or blocked paths, each path should show:
+
+```text
+residual reachability
+control strength
+telemetry cost
+approval requirement
+data sensitivity
+```
+
+This makes `G_C` realistic.
+
+### 3. Explicit goal
+
+The trace should show the goal clearly.
+
+Example:
+
+```text
+goal = retrieve approved report
+```
+
+or:
+
+```text
+goal = locate sensitive document
+```
+
+The agent policy should be visibly goal-conditioned.
+
+### 4. Telemetry and detection meter
+
+Show:
+
+```text
+event count
+denials
+tool calls
+sequence risk
+anomaly score
+detection probability
+```
+
+Parallel attempts should increase both exploration and detection evidence.
+
+### 5. Separate containment slider
+
+Separate:
+
+```text
+visibility / detection
+containment authority
+```
+
+The demo should show that great detection with slow containment can still lose.
+
+### 6. Interaction term example
+
+Show an AI-native failure becoming a conventional cyber path:
+
+```text
+indirect prompt injection → unsafe tool call → credentialed internal data access
+```
+
+This prevents finance or leadership from treating the two risk buckets as cleanly separable.
+
+---
+
+## 30. Current automation is not perfect — and that does not weaken the argument
 
 We should not overclaim.
 
@@ -1139,7 +1770,7 @@ Security models should be built for the direction of travel, not just the curren
 
 ---
 
-## 22. The controls this implies
+## 31. The controls this implies
 
 If the risk is the loop, then controls must govern the loop.
 
@@ -1214,11 +1845,29 @@ One request may be normal.
 
 The sequence may not be.
 
-### 10. Human approval
+### 10. Containment authority
+
+Detection is not containment.
+
+Sensitive agentic workflows need explicit authority paths for:
+
+```text
+session revocation
+agent shutdown
+tool disablement
+connector revocation
+memory quarantine
+approval hold
+blast-radius reduction
+```
+
+Machine-speed detection without machine-speed containment can still lose the race.
+
+### 11. Human approval
 
 Sensitive actions should require human approval before execution, especially when the agent is crossing data boundaries, invoking external tools, changing permissions, sending communications, modifying code, or taking irreversible action.
 
-### 11. Input-plane governance
+### 12. Input-plane governance
 
 Every source of text, document, metadata, retrieved content, tool output, and memory must be treated as potential influence on the agent.
 
@@ -1226,7 +1875,7 @@ Input security is no longer only about application parsing.
 
 It is about influence over the control loop.
 
-### 12. Lifecycle governance
+### 13. Lifecycle governance
 
 Content must be tracked across runtime, memory, logs, retrieval, evaluation, fine-tuning, human review, and downstream systems.
 
@@ -1234,7 +1883,7 @@ Data that enters the AI system should not silently become permanent influence.
 
 ---
 
-## 23. Governance must move from actions to objectives
+## 32. Governance must move from actions to objectives
 
 Traditional governance asks:
 
@@ -1274,13 +1923,14 @@ retry governance
 approval governance
 explainability governance
 lifecycle governance
+containment governance
 ```
 
 This is the difference between securing an API call and securing an autonomous actor.
 
 ---
 
-## 24. The defensive use case
+## 33. The defensive use case
 
 This manifesto is not anti-agent.
 
@@ -1334,7 +1984,7 @@ The goal is to make them accountable, constrained, observable, and aligned with 
 
 ---
 
-## 25. The maturity model
+## 34. The maturity model
 
 ### Level 0: No agent awareness
 
@@ -1346,6 +1996,7 @@ No tool-chain logs
 No goal governance
 No memory controls
 No approval boundaries
+No containment authority
 ```
 
 ### Level 1: Basic containment
@@ -1406,24 +2057,31 @@ objective drift
 data-boundary crossings
 memory contamination
 external content influence
+containment readiness
 ```
 
 The organization governs not just actions, but autonomous pursuit.
 
 ---
 
-## 26. The language we should use
+## 35. The language we should use
 
 Use this:
 
 ```text
-Same primitives. New control loop. New risk model.
+Same primitives. New controller. Revised risk model.
 ```
 
 Use this:
 
 ```text
-The primitive did not change. The decision plane did.
+Existing controls govern the probabilistic action graph. Agentic security governs the goal-directed controller searching it.
+```
+
+Use this:
+
+```text
+The primitive did not change. The controller did.
 ```
 
 Use this:
@@ -1453,19 +2111,25 @@ The request may be familiar. The autonomous sequence is not.
 Use this:
 
 ```text
-Traditional security slows the attacker. Agentic security must constrain autonomous search.
+Conventional cyber becomes a machine-speed cadence problem. AI-native agent surfaces create new control requirements.
+```
+
+Use this:
+
+```text
+Parallelism buys exploration and sells stealth.
+```
+
+Use this:
+
+```text
+Detection automation alone is insufficient if containment authority remains human-speed.
 ```
 
 Use this:
 
 ```text
 We are not replacing fundamentals. We are extending them to govern the loop.
-```
-
-Use this:
-
-```text
-Agentic risk compounds existing weaknesses. It does not replace them.
 ```
 
 Use this:
@@ -1494,7 +2158,7 @@ Input is no longer just data. Input can become influence.
 
 ---
 
-## 27. The language we should avoid
+## 36. The language we should avoid
 
 Avoid:
 
@@ -1511,6 +2175,22 @@ Existing controls do not matter.
 ```
 
 They matter.
+
+Avoid:
+
+```text
+Agentic AI structurally guarantees offensive advantage.
+```
+
+It does not. Defenders can automate too.
+
+Avoid:
+
+```text
+Parallelism is a free multiplier.
+```
+
+It is not. It generates telemetry.
 
 Avoid:
 
@@ -1578,9 +2258,21 @@ Say:
 Guardrails are useful controls, but agentic security requires loop governance.
 ```
 
+Avoid:
+
+```text
+These equations produce the risk number.
+```
+
+Say:
+
+```text
+These equations are a reasoning scaffold. Quantification requires calibration.
+```
+
 ---
 
-## 28. The answer to “curl is still curl”
+## 37. The answer to “curl is still curl”
 
 Yes.
 
@@ -1592,13 +2284,15 @@ The security question is:
 
 ```text
 Who or what decides the next curl?
+What goal is it pursuing?
 Why was it called?
-What goal was being pursued?
 What context influenced the decision?
 What failed before this?
 What will the agent try next?
 What authority is it using?
 What data boundary is it crossing?
+How much telemetry did it generate?
+Can defenders contain the chain quickly enough?
 Can the sequence be reconstructed?
 Can the loop be stopped?
 ```
@@ -1621,7 +2315,7 @@ The autonomous control loop is new.
 
 ---
 
-## 29. The answer to “this is not a new problem”
+## 38. The answer to “this is not a new problem”
 
 At the highest level of abstraction, almost nothing in security is new.
 
@@ -1653,11 +2347,21 @@ A precursor is not equivalence.
 
 An old primitive in a new control loop can create a new security domain.
 
+But we should be precise:
+
+```text
+Conventional cyber under agentic tempo is a retuning of existing control families.
+AI-native control-surface risk is where net-new controls appear.
+The interaction term is where the two amplify each other.
+```
+
+That is the defensible version.
+
 ---
 
-## 30. The final manifesto
+## 39. The final manifesto
 
-We believe agentic AI security must be understood at the control-loop layer.
+We believe agentic AI security must be understood at the controller layer.
 
 The industry will be tempted to minimize the shift by pointing to familiar primitives:
 
@@ -1698,6 +2402,10 @@ It moves us from input validation to input-plane governance.
 
 It moves us from data labels to runtime data-boundary enforcement.
 
+It moves us from event logging to control-loop observability.
+
+It moves us from detection-only thinking to detection-plus-containment thinking.
+
 It moves us from “did this API call succeed?” to “should this agent have pursued this objective in this way?”
 
 The old fundamentals still matter.
@@ -1725,6 +2433,9 @@ Now we also need to understand how agents compose cloud and SaaS permissions int
 We still need detection.  
 Now we also need governance of autonomous search.
 
+We still need containment.  
+Now we need containment authority that can keep pace with machine-speed action chains.
+
 We still need guardrails.  
 Now we also need policy enforcement around actions and chains.
 
@@ -1740,10 +2451,10 @@ Everything is new.
 The mature position is:
 
 ```text
-The primitives are familiar, but the operating model has changed.
+The primitives are familiar, but the controller and operating model have changed.
 ```
 
-And when the operating model changes, the risk model changes.
+And when the controller and operating model change, the risk model changes.
 
 That is why agentic AI security is not merely:
 
@@ -1755,7 +2466,7 @@ It is:
 
 ```text
 same primitives
-+ autonomous decision-making
++ goal-directed controller
 + tool access
 + memory
 + feedback
@@ -1763,68 +2474,14 @@ same primitives
 + delegated authority
 + adaptive retries
 + ecosystem integration
-= new operational risk model
++ imperfect controls
++ defender containment constraints
+= revised operational risk model
 ```
 
 Or, in the shortest possible form:
 
-> **Same primitives. New control loop. New risk model.**
-
----
-
-## Appendix A: The Revised Math Framework
-
-After several rounds of peer review, the formal expression of the model has settled into seven blocks. The argument throughout this manifesto is informal; this appendix is the precise version. Each block names a piece of the agentic risk model that the older "same attacks, faster" framing collapses.
-
-### 1. The Probabilistic Action Graph
-
-Controls do not perfectly remove edges; they change edge probabilities and costs.
-
-$$G_C = (V, E, w_e)$$
-
-### 2. The Goal-Directed Controller Policy
-
-The primitive isn't new; the controller choosing the primitive is.
-
-$$\pi_i(a_t \mid h_t, G_C, g_i)$$
-
-### 3. Risk as a Hitting-Time Race
-
-Risk is expected impact conditional on the attacker beating governance, detection + containment, or hard stops.
-
-$$\text{Risk} = E[\text{Impact} \mid \mathfrak{E}] \times P(\mathfrak{E})$$
-
-$$\mathfrak{E} = \{\, \tau_{\text{impact}} < \min(\tau_G,\; \tau_D + \tau_K,\; \tau_{\text{stop}}) \,\}$$
-
-### 4. Dynamic Effective Speed Ceilings
-
-Effective speed is capped by chokepoints, but both sides can act on those chokepoints dynamically.
-
-$$r_{\text{eff}}(P, t) = \min\bigl(P \times r_{\text{lane}}(t),\; r_{\text{tool}}(t),\; r_{\text{auth}}(t),\; r_{\text{rate}}(t),\; r_{\text{compute}}(t),\; r_{\text{approval}}(t),\; r_{\text{network}}(t)\bigr)$$
-
-$$r_j(t+1) = r_j(t) + \Delta_{\text{offense\_j}}(t) - \Delta_{\text{defense\_j}}(t)$$
-
-### 5. Nonlinear Detection Evidence
-
-Parallelism buys exploration but sells stealth. Signal accumulates nonlinearly.
-
-$$z_t = \beta_0 + \beta_1 \log(1 + \text{event\_volume}_t) + \beta_2\, \text{anomaly\_score}_t + \beta_3\, \text{sequence\_risk}_t + \dots$$
-
-$$P_{\text{detect}}(t) = \sigma(z_t - \theta)$$
-
-### 6. Total Risk with Interaction Term
-
-AI-native failures can become delivery mechanisms for conventional cyber impact.
-
-$$R_{\text{total}} = R_{\text{conventional\_tempo}} + R_{\text{AI\_native}} + R_{\text{interaction}}$$
-
-### 7. AI-Native Risk Chain
-
-A single weak design can collapse multiple gates at once.
-
-$$R_{\text{AI\_native}} = E[\text{Impact} \mid \mathfrak{E}_{\text{AI}}] \times P(\mathfrak{E}_{\text{AI}})$$
-
-$$P(\mathfrak{E}_{\text{AI}}) = P(U) \times P(C \mid U) \times P(A \mid C, U) \times P(X \mid A, C, U) \times P(\tau_X < \tau_G \mid X, A, C, U)$$
+> **Existing controls govern the probabilistic action graph. Agentic security governs the goal-directed controller searching it.**
 
 ---
 
@@ -1834,7 +2491,8 @@ This manifesto synthesizes three streams of evidence and design work:
 
 1. **Practical enterprise AI security assessment patterns.** Live AI systems increasingly span multiple models, agents, RAG, prompt caches, logging and observability layers, workflow orchestration, tool calls, SaaS APIs, document processing, collaboration integrations, and downstream business applications. These systems are assessed as ecosystems, not isolated chat boxes.
 
-2. **Security leadership observations about AI-driven change.** AI is increasing the speed, volume, and complexity of software and security work. It is making data classification, explainability, governance, human critical thinking, and AI-augmented security teams newly urgent.
+2. **Security leadership observations about AI-driven change.** AI is increasing the speed, volume, and complexity of software and security work. It is making data classification, explainability, governance, human critical thinking, AI workers, and AI-augmented security teams newly urgent.
 
 3. **The companion agentic security simulation.** The demo is designed to make the control-loop distinction observable: two actors begin with the same goal, same first primitive, and same initial denial; the static automation stops, while the agentic executor treats failure as feedback and continues. The comparative curve is designed to show path-quality, not speed.
 
+For public publication, cite original public talks, papers, demos, or assessment writeups where available. For internal use, preserve the assessment notes, talk transcripts, and demo requirements that grounded this draft.
