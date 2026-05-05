@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Literal
+from typing import Dict, List, Literal, Optional
 
 
 @dataclass(frozen=True)
@@ -39,6 +39,9 @@ class Step:
     detected_after_step: bool
     sensitive_exposure: bool = False
     memory_after_step: List[str] = field(default_factory=list)
+    applied_controls: List[str] = field(default_factory=list)
+    detection_logged: bool = False
+    detection_flagged: bool = False
 
 
 @dataclass
@@ -52,6 +55,10 @@ class RunResult:
     succeeded: bool = False
     detected: bool = False
     stopped_reason: str = ""
+    agentic_halt_reason: Optional[str] = None
+    detection_signal: Dict[str, int] = field(
+        default_factory=lambda: {"logged": 0, "flagged": 0}
+    )
 
     @property
     def step_count(self) -> int:

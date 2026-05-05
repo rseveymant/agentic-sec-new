@@ -537,3 +537,607 @@
     init();
   }
 })();
+
+/* ---------------------------------------------------------------------------
+ * Controls section — toggle-driven re-render of #controls-trace.
+ *
+ * Lives in its own IIFE so the existing #trace animation engine above is
+ * untouched. Mode detection (live vs. static) is performed independently:
+ * a probe to /api/trace decides which fetch path is used. Static mode loads
+ * the pre-rendered catalog via window.ControlsOverlay (controls-overlay.js).
+ * --------------------------------------------------------------------------- */
+(function () {
+  "use strict";
+
+  var API_TRACE = "api/trace";
+  var DEBOUNCE_MS = 120;
+  var CAPTION_FRICTION = "Friction added. Path changed. Goal still pursued.";
+  var CAPTION_INTERRUPT = "The loop is interrupted, not just the call.";
+  var REPO_URL = "https://github.com/rseveymant/agentic-sec-new";
+  var SERVE_CMD = "python agentic_security_demo.py --serve";
+
+  // Mode is set by detectMode(); 'live' or 'static'.
+  var mode = null;
+  var debounceTimer = null;
+  // Keep track of the most recent live request so out-of-order responses
+  // from rapid toggling don't clobber a newer render.
+  var liveReqId = 0;
+  // Static mode: gate toggles until the catalog has loaded.
+  var togglesDisabled = false;
+
+  // ---- DOM refs ----
+  var els = {};
+
+  function bindEls() {
+    els.fieldsets = document.querySelectorAll("#controls fieldset");
+    els.checkboxes = document.querySelectorAll(
+      '#controls fieldset input[type="checkbox"]'
+    );
+    els.resetBtn = document.getElementById("controls-reset");
+    els.controlsTrace = document.getElementById("controls-trace");
+    els.detectionSignal = document.getElementById("detection-signal");
+    els.caption = document.getElementById("controls-caption");
+    // Reuse seed/capability/max_steps inputs from the #trace section if present.
+    els.paramSeed = document.getElementById("param-seed");
+    els.paramCapability = document.getElementById("param-capability");
+    els.paramMaxSteps = document.getElementById("param-max-steps");
+  }
+
+  // ---- Toggle state ----
+  function readToggleState() {
+    var tc = [];
+    var ac = [];
+    var checked = document.querySelectorAll(
+      '#controls fieldset input[type="checkbox"]:checked'
+    );
+    for (var i = 0; i < checked.length; i++) {
+      var id = checked[i].id || "";
+      if (id.indexOf("tc-") === 0) {
+        tc.push(id.slice(3));
+      } else if (id.indexOf("ac-") === 0) {
+        ac.push(id.slice(3));
+      }
+    }
+    tc.sort();
+    ac.sort();
+    return { tc: tc, ac: ac };
+  }
+
+  // ---- Mode detection ----
+  // Probe via GET to /api/trace; HEAD on Python's BaseHTTPRequestHandler returns
+  // 501 by default, so we use a tiny GET probe. Cheap (cached for the page).
+  function detectMode() {
+    return fetch(API_TRACE + "?seed=7&capability=4&max_steps=8")
+      .then(function (r) {
+        if (r.ok) return "live";
+        return "static";
+      })
+      .catch(function () {
+        return "static";
+      });
+  }
+
+  // ---- Helpers ----
+  function getParamValue(el, fallback, lo, hi) {
+    if (!el) return fallback;
+    var v = parseInt(el.value, 10);
+    if (isNaN(v)) return fallback;
+    return Math.max(lo, Math.min(hi, v));
+  }
+
+  function statusClass(code, sensitive) {
+    if (sensitive) return "status-warn";
+    if (code >= 200 && code < 300) return "status-ok";
+    if (code >= 400 && code < 500) return "status-err";
+    return "status-warn";
+  }
+
+  function isHaltStep(step) {
+    return (
+      typeof step.tool === "string" &&
+      step.tool.length > 0 &&
+      step.tool.charAt(0) === "<"
+    );
+  }
+
+  // ---- Rendering ----
+  function clearChildren(node) {
+    while (node && node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function renderAppliedControls(applied) {
+    if (!applied || applied.length === 0) return null;
+    var div = document.createElement("div");
+    div.className = "step-applied-controls";
+    var label = document.createElement("span");
+    label.className = "applied-label";
+    label.textContent = "controls fired:";
+    var list = document.createElement("span");
+    list.className = "applied-list";
+    list.textContent = " " + applied.join(", ");
+    div.appendChild(label);
+    div.appendChild(list);
+    return div;
+  }
+
+  function renderMemoryNote(memoryEntries) {
+    var div = document.createElement("div");
+    div.className = "memory-note";
+    var label = document.createElement("span");
+    label.className = "memory-label";
+    label.textContent = "Agent memory after this step";
+    div.appendChild(label);
+    var ul = document.createElement("ul");
+    ul.className = "memory-entries";
+    var lastEntry = memoryEntries[memoryEntries.length - 1];
+    var li = document.createElement("li");
+    li.textContent = lastEntry;
+    ul.appendChild(li);
+    div.appendChild(ul);
+    return div;
+  }
+
+  function renderHaltStep(step, displayNum) {
+    var div = document.createElement("div");
+    div.className = "trace-step trace-step-halt";
+
+    var head = document.createElement("div");
+    head.className = "step-head";
+
+    var num = document.createElement("span");
+    num.className = "step-num";
+    num.textContent = String(displayNum);
+
+    var tool = document.createElement("span");
+    tool.className = "tool";
+    tool.textContent = step.tool;
+
+    var status = document.createElement("span");
+    status.className = "status status-err";
+    status.textContent = "halt";
+
+    head.append(num, tool, status);
+
+    var banner = document.createElement("div");
+    banner.className = "halt-banner";
+    banner.textContent = step.observation || "Loop halted.";
+
+    div.append(head, banner);
+
+    var applied = renderAppliedControls(step.applied_controls);
+    if (applied) div.appendChild(applied);
+    return div;
+  }
+
+  function renderStep(step, displayNum, kind) {
+    if (isHaltStep(step)) return renderHaltStep(step, displayNum);
+
+    var div = document.createElement("div");
+    div.className = "trace-step";
+
+    var head = document.createElement("div");
+    head.className = "step-head";
+
+    var num = document.createElement("span");
+    num.className = "step-num";
+    num.textContent = String(displayNum);
+
+    var tool = document.createElement("span");
+    tool.className = "tool";
+    tool.textContent = step.tool;
+
+    var status = document.createElement("span");
+    status.className =
+      "status " + statusClass(step.status, step.sensitive_exposure);
+    status.textContent = step.status;
+
+    head.append(num, tool, status);
+
+    var reason = document.createElement("div");
+    reason.className = "reason";
+    reason.textContent = step.reason || "";
+
+    var obs = document.createElement("div");
+    obs.className = "observation";
+    obs.textContent = step.observation || "";
+
+    div.append(head, reason, obs);
+
+    var applied = renderAppliedControls(step.applied_controls);
+    if (applied) div.appendChild(applied);
+
+    if (
+      kind === "agent" &&
+      step.memory_after_step &&
+      step.memory_after_step.length > 0
+    ) {
+      div.appendChild(renderMemoryNote(step.memory_after_step));
+    }
+
+    return div;
+  }
+
+  function renderColumnInto(stepsContainer, steps, kind) {
+    clearChildren(stepsContainer);
+    if (!steps || steps.length === 0) {
+      var p = document.createElement("p");
+      p.className = "trace-empty";
+      p.textContent =
+        kind === "agent"
+          ? "no steps — agent did not act."
+          : "no steps.";
+      stepsContainer.appendChild(p);
+      return;
+    }
+    for (var i = 0; i < steps.length; i++) {
+      stepsContainer.appendChild(renderStep(steps[i], i + 1, kind));
+    }
+  }
+
+  function setOutcomePill(headerEl, actor) {
+    if (!headerEl) return;
+    var pill = headerEl.querySelector(".actor-outcome");
+    if (!pill) return;
+    if (!actor) {
+      pill.className = "actor-outcome";
+      pill.textContent = "—";
+      return;
+    }
+    if (actor.succeeded) {
+      pill.className = "actor-outcome success";
+      pill.textContent = "impact reached";
+    } else {
+      pill.className = "actor-outcome stopped";
+      pill.textContent = actor.kind === "static" ? "stopped on 403" : "no impact";
+    }
+  }
+
+  function buildColumn(kind, actor) {
+    var col = document.createElement("div");
+    col.className = "trace-col " + (kind === "static" ? "trace-col-static" : "trace-col-agent");
+
+    var header = document.createElement("div");
+    header.className = "trace-col-header";
+
+    var label = document.createElement("span");
+    label.className =
+      "actor-label " + (kind === "static" ? "actor-label-static" : "actor-label-agent");
+    label.textContent =
+      kind === "static" ? "Static automation" : "Agentic executor";
+
+    var pill = document.createElement("span");
+    pill.className = "actor-outcome";
+    pill.textContent = "—";
+
+    header.appendChild(label);
+    header.appendChild(pill);
+    col.appendChild(header);
+
+    var stepsDiv = document.createElement("div");
+    stepsDiv.className =
+      "trace-steps " + (kind === "static" ? "trace-static" : "trace-agent");
+    col.appendChild(stepsDiv);
+
+    renderColumnInto(stepsDiv, actor ? actor.steps : [], kind);
+    setOutcomePill(header, actor);
+    return col;
+  }
+
+  function renderTrace(staticActor, agentActor) {
+    if (!els.controlsTrace) return;
+    clearChildren(els.controlsTrace);
+    els.controlsTrace.classList.add("trace-columns");
+    els.controlsTrace.classList.remove("controls-trace-fallback");
+    els.controlsTrace.classList.remove("controls-trace-loading");
+    els.controlsTrace.appendChild(buildColumn("static", staticActor));
+    els.controlsTrace.appendChild(buildColumn("agent", agentActor));
+  }
+
+  function renderDetectionSignal(signal) {
+    if (!els.detectionSignal) return;
+    var logged = (signal && typeof signal.logged === "number") ? signal.logged : 0;
+    var flagged = (signal && typeof signal.flagged === "number") ? signal.flagged : 0;
+    clearChildren(els.detectionSignal);
+    var pillL = document.createElement("span");
+    pillL.className = "signal-pill signal-pill-logged";
+    pillL.textContent = "▣ " + logged + " logged";
+    var pillF = document.createElement("span");
+    pillF.className = "signal-pill signal-pill-flagged";
+    pillF.textContent = "⚠ " + flagged + " flagged";
+    els.detectionSignal.appendChild(pillL);
+    els.detectionSignal.appendChild(pillF);
+  }
+
+  function renderCaption(agentActor, anyControlsOn) {
+    if (!els.caption) return;
+    if (!agentActor || !anyControlsOn) {
+      els.caption.textContent = "";
+      els.caption.hidden = true;
+      return;
+    }
+    var halt = agentActor.agentic_halt_reason;
+    if (
+      agentActor.succeeded === true &&
+      (halt === null || halt === undefined)
+    ) {
+      els.caption.textContent = CAPTION_FRICTION;
+      els.caption.hidden = false;
+      return;
+    }
+    if (halt === "govern" || halt === "contain" || halt === "respond") {
+      els.caption.textContent = CAPTION_INTERRUPT;
+      els.caption.hidden = false;
+      return;
+    }
+    // Other failure shapes (e.g., agent ran out of steps without an agentic
+    // halt). Hide the caption rather than misclassifying.
+    els.caption.textContent = "";
+    els.caption.hidden = true;
+  }
+
+  function renderLoading() {
+    if (!els.controlsTrace) return;
+    clearChildren(els.controlsTrace);
+    els.controlsTrace.classList.remove("trace-columns");
+    els.controlsTrace.classList.add("controls-trace-loading");
+    var p = document.createElement("p");
+    p.className = "trace-empty";
+    p.textContent = "Loading control catalog…";
+    els.controlsTrace.appendChild(p);
+  }
+
+  function renderFallback(state) {
+    if (!els.controlsTrace) return;
+    clearChildren(els.controlsTrace);
+    els.controlsTrace.classList.remove("trace-columns");
+    els.controlsTrace.classList.add("controls-trace-fallback");
+
+    var wrap = document.createElement("div");
+    wrap.className = "controls-fallback";
+
+    var heading = document.createElement("p");
+    heading.className = "controls-fallback-heading";
+    var headingStrong = document.createElement("strong");
+    headingStrong.textContent = "This combination requires the live demo.";
+    heading.appendChild(headingStrong);
+    wrap.appendChild(heading);
+
+    var body = document.createElement("p");
+    body.className = "controls-fallback-body";
+    body.textContent =
+      "The static snapshot does not include a pre-rendered trace for this set of toggles. Run the live demo to see the agent's behavior on this combination.";
+    wrap.appendChild(body);
+
+    var togglesLine = document.createElement("p");
+    togglesLine.className = "controls-fallback-toggles";
+    var labelStrong = document.createElement("strong");
+    labelStrong.textContent = "Toggles set: ";
+    togglesLine.appendChild(labelStrong);
+    var tcText = state.tc.length ? state.tc.join(", ") : "(none)";
+    var acText = state.ac.length ? state.ac.join(", ") : "(none)";
+    togglesLine.appendChild(
+      document.createTextNode("traditional = " + tcText + "; agentic = " + acText)
+    );
+    wrap.appendChild(togglesLine);
+
+    var howto = document.createElement("p");
+    howto.className = "controls-fallback-howto";
+    howto.appendChild(document.createTextNode("Clone "));
+    var a = document.createElement("a");
+    a.href = REPO_URL;
+    a.textContent = REPO_URL;
+    howto.appendChild(a);
+    howto.appendChild(document.createTextNode(" and run "));
+    var code = document.createElement("code");
+    code.textContent = SERVE_CMD;
+    howto.appendChild(code);
+    howto.appendChild(document.createTextNode("."));
+    wrap.appendChild(howto);
+
+    els.controlsTrace.appendChild(wrap);
+  }
+
+  // ---- Trace shape adapter ----
+  // Live API returns { actors: [staticActor, agentActor], detection_signal }.
+  // Static catalog returns { static_actor_trace, agent_traces[*].trace }.
+  // Normalize into { staticActor, agentActor, detection_signal }.
+  function normalizeLive(json) {
+    if (!json || !json.actors) return null;
+    return {
+      staticActor: json.actors[0] || null,
+      agentActor: json.actors[1] || null,
+      detection_signal: json.detection_signal || { logged: 0, flagged: 0 },
+    };
+  }
+
+  function normalizeStatic(lookupResult) {
+    if (!lookupResult || lookupResult.fallback) return null;
+    return {
+      staticActor: lookupResult.static_actor_trace || null,
+      agentActor: lookupResult.trace || null,
+      detection_signal:
+        lookupResult.detection_signal || { logged: 0, flagged: 0 },
+    };
+  }
+
+  // ---- Render orchestration ----
+  function renderFromNormalized(normalized, anyControlsOn) {
+    if (!normalized) return;
+    renderTrace(normalized.staticActor, normalized.agentActor);
+    renderDetectionSignal(normalized.detection_signal);
+    renderCaption(normalized.agentActor, anyControlsOn);
+  }
+
+  function fetchLiveAndRender() {
+    var state = readToggleState();
+    var anyOn = state.tc.length + state.ac.length > 0;
+    var seed = getParamValue(els.paramSeed, 7, 0, 99999);
+    var capability = getParamValue(els.paramCapability, 4, 1, 5);
+    var maxSteps = getParamValue(els.paramMaxSteps, 8, 2, 20);
+    var url =
+      API_TRACE +
+      "?seed=" + seed +
+      "&capability=" + capability +
+      "&max_steps=" + maxSteps +
+      "&tc=" + encodeURIComponent(state.tc.join(",")) +
+      "&ac=" + encodeURIComponent(state.ac.join(","));
+
+    var reqId = ++liveReqId;
+    fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error("trace fetch failed: " + r.status);
+        return r.json();
+      })
+      .then(function (json) {
+        if (reqId !== liveReqId) return; // a newer request superseded this one
+        var n = normalizeLive(json);
+        renderFromNormalized(n, anyOn);
+      })
+      .catch(function (err) {
+        // Quiet failure for repeated toggles; surface to console for debugging.
+        // Don't blow away the existing UI.
+        if (typeof console !== "undefined" && console.error) {
+          console.error("controls live fetch error:", err);
+        }
+      });
+  }
+
+  function lookupStaticAndRender() {
+    if (!window.ControlsOverlay) return;
+    var state = readToggleState();
+    var anyOn = state.tc.length + state.ac.length > 0;
+    var result = window.ControlsOverlay.lookupTrace(state.tc, state.ac);
+    if (result.fallback) {
+      renderFallback(state);
+      // Detection signal stays at zero for fallback combos.
+      renderDetectionSignal({ logged: 0, flagged: 0 });
+      // Caption hidden when fallback.
+      if (els.caption) {
+        els.caption.textContent = "";
+        els.caption.hidden = true;
+      }
+      return;
+    }
+    var n = normalizeStatic(result);
+    renderFromNormalized(n, anyOn);
+  }
+
+  function triggerRender() {
+    if (mode === "live") {
+      fetchLiveAndRender();
+    } else if (mode === "static") {
+      lookupStaticAndRender();
+    }
+  }
+
+  function debouncedTrigger() {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      debounceTimer = null;
+      triggerRender();
+    }, DEBOUNCE_MS);
+  }
+
+  // ---- Default-state render (no controls toggled) ----
+  function renderDefaultState() {
+    if (mode === "live") {
+      fetchLiveAndRender();
+    } else if (mode === "static") {
+      // The static catalog includes the all-off entry.
+      lookupStaticAndRender();
+    }
+  }
+
+  // ---- Toggle gating during static-mode load ----
+  function setTogglesDisabled(disabled) {
+    togglesDisabled = disabled;
+    for (var i = 0; i < els.checkboxes.length; i++) {
+      els.checkboxes[i].disabled = disabled;
+    }
+    if (els.resetBtn) els.resetBtn.disabled = disabled;
+  }
+
+  // ---- Reset ----
+  function resetAll() {
+    if (togglesDisabled) return;
+    for (var i = 0; i < els.checkboxes.length; i++) {
+      els.checkboxes[i].checked = false;
+    }
+    // Render synchronously rather than waiting for a debounce — Reset is a
+    // single deliberate user action.
+    triggerRender();
+  }
+
+  // ---- Static script loader ----
+  // If the page didn't include controls-overlay.js as a static <script>,
+  // dynamically inject it. Index.html includes it via <script defer>, so this
+  // is a defensive no-op in the canonical layout.
+  function ensureOverlayLoaded() {
+    if (window.ControlsOverlay) return Promise.resolve();
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "static/controls-overlay.js";
+      s.defer = true;
+      s.onload = function () { resolve(); };
+      s.onerror = function () { reject(new Error("controls-overlay.js load failed")); };
+      document.head.appendChild(s);
+    });
+  }
+
+  // ---- Wire-up ----
+  function attachListeners() {
+    for (var i = 0; i < els.checkboxes.length; i++) {
+      els.checkboxes[i].addEventListener("change", debouncedTrigger);
+    }
+    if (els.resetBtn) {
+      els.resetBtn.addEventListener("click", resetAll);
+    }
+  }
+
+  function init() {
+    bindEls();
+    if (!els.controlsTrace) return; // Section not present (older page); no-op.
+
+    attachListeners();
+
+    detectMode().then(function (m) {
+      mode = m;
+      if (mode === "live") {
+        renderDefaultState();
+        return;
+      }
+      // Static mode: gate toggles, load catalog, then render.
+      setTogglesDisabled(true);
+      renderLoading();
+      ensureOverlayLoaded()
+        .then(function () {
+          return window.ControlsOverlay.loadCatalog();
+        })
+        .then(function () {
+          setTogglesDisabled(false);
+          renderDefaultState();
+        })
+        .catch(function (err) {
+          if (typeof console !== "undefined" && console.error) {
+            console.error("controls-overlay load failed:", err);
+          }
+          // Leave toggles disabled; show a clear note.
+          if (els.controlsTrace) {
+            clearChildren(els.controlsTrace);
+            els.controlsTrace.classList.remove("trace-columns");
+            var p = document.createElement("p");
+            p.className = "trace-empty";
+            p.textContent =
+              "Could not load control catalog. Refresh to retry.";
+            els.controlsTrace.appendChild(p);
+          }
+        });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
